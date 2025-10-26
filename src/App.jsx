@@ -1,22 +1,21 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import "./index.css";
 import SignInPage from "./pages/SignIn";
+import SignUpPage from "./pages/SignUp";
 import RootLayout from "./layouts/RootLayout";
-
+import HomePage from "./pages/HomePage";
 
 const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const url = import.meta.env.VITE_SUPABASE_URL;
 
 const supabase = createClient(url, apikey);
 
-console.log(url)
-
-
 function App() {
   const [instruments, setInstruments] = useState([]);
 
-  
+
   useEffect(() => {
     getInstruments();
   }, []);
@@ -26,21 +25,20 @@ function App() {
     console.log(data)
     setInstruments(data);
   }
-  
 
-  console.log("hi?")
 
   return (
+
     <BrowserRouter>
       <Routes>
-        <Route element = {<RootLayout/>}>
-
-          <Route index path = "/" element = {<SignInPage/>}/>
-
+        <Route element={<RootLayout />}>
+          <Route index element={<HomePage />} />
+          <Route index path="/signin" element={<SignInPage />} />
+          <Route index path="/signup" element={<SignUpPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
-    
+
   );
 }
 
