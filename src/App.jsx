@@ -16,6 +16,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  /* Commented out for development
   useEffect(() => {
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -32,6 +33,7 @@ function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+  */
 
   return (
     <BrowserRouter>
@@ -40,11 +42,13 @@ function App() {
           <Route index element={<HomePage />} />
           <Route
             path="/auth"
-            element={user ? <Navigate to="/dashboard" replace /> : <Auth />}
+            element={<Auth />}
+          // element={user ? <Navigate to="/dashboard" replace /> : <Auth />}
           />
           <Route
             path="/dashboard"
-            element={user ? <Dashboard user={user} /> : <Navigate to="/auth" replace />}
+            element={<Dashboard />}
+          // element={user ? <Dashboard user={user} /> : <Navigate to="/auth" replace />}
           />
         </Route>
       </Routes>
