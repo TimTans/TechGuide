@@ -3,15 +3,32 @@ import {
     Clock, ArrowRight, Bell, Users, Lock, Sparkles
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "../App";
+import { UserAuth } from "../context/AuthContext";
+import { useEffect } from "react";
 
-export default function Dashboard({ user }) {
+export default function Dashboard() {
     const navigate = useNavigate();
+    const { session, signOut } = UserAuth();
+    const user = session?.user;
+
+    // Redirect to signin if not authenticated
+    useEffect(() => {
+        if (session === null) {
+            navigate("/signin");
+        }
+    }, [session, navigate]);
 
     const handleSignOut = async () => {
-        await supabase.auth.signOut();
-        navigate("/");
+        const result = await signOut();
+        if (result.success) {
+            navigate("/");
+        }
     };
+
+    // Show loading or nothing while checking auth
+    if (session === null) {
+        return null;
+    }
 
     // Mock data for progress and activities
     const userProgress = {

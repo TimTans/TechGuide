@@ -6,7 +6,7 @@ import { UserAuth } from "../context/AuthContext";
 export default function HomePage() {
     const [showPhoneNumber, setShowPhoneNumber] = useState(false);
 
-    const {session, signUpNewUser, signOut, signIn} = UserAuth();
+    const { session, signUpNewUser, signOut, signIn } = UserAuth();
 
     console.log(session)
 
@@ -48,7 +48,7 @@ export default function HomePage() {
                                     <span className="text-sm font-bold whitespace-nowrap">(123) 456-7890</span>
                                 </div>
                             </div>
-                            <Link to="/auth" className={`bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-gray-800 transition-all duration-300 ${showPhoneNumber ? 'ml-0' : '-ml-2'}`}>
+                            <Link to="/signup" className={`bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-gray-800 transition-all duration-300 ${showPhoneNumber ? 'ml-0' : '-ml-2'}`}>
                                 GET STARTED
                             </Link>
                         </div>
@@ -77,7 +77,7 @@ export default function HomePage() {
                         </h2>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12">
-                            <Link to="/signin">
+                            <Link to="/signup">
                                 <button className="bg-emerald-500 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-emerald-600 transition-colors shadow-lg">
                                     START LEARNING
                                 </button>

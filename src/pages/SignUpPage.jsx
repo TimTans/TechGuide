@@ -1,42 +1,49 @@
 import { Monitor } from "lucide-react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { UserAuth } from "../context/AuthContext";
 
-function SignUpPage(){
+function SignUpPage() {
 
-    const [isLogin, setIsLogin] = useState(true);
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [successMessage, setSuccessMessage] = useState("");
 
-    const {session, signUpNewUser} = UserAuth();
-
-    
+    const { session, signUpNewUser } = UserAuth();
+    const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        console.log('hello?')
-        try {
-            const result = await signUpNewUser(email, password)
+        setError("");
+        setSuccessMessage("");
 
-            if(result.success){
-                console.log("nice man.")
-            }
+        const result = await signUpNewUser(email, password);
 
+        if (result.success) {
+            setSuccessMessage("Account created successfully! Check your email to verify your account.");
+            // Clear form
+            setFullName("");
+            setEmail("");
+            setPassword("");
+            // Optionally redirect after a delay
+            setTimeout(() => {
+                navigate("/signin");
+            }, 2000);
+        } else {
+            setError(result.error?.message || "Failed to create account. Please try again.");
         }
-        catch (error){
-            console.error('error', error)
-        }
-        finally{
-            setLoading(false)
-        }
 
-
-
+        setLoading(false);
     };
+
+    // Redirect if already logged in
+    if (session) {
+        return <Navigate to="/dashboard" replace />;
+    }
 
 
     return (
@@ -58,7 +65,19 @@ function SignUpPage(){
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        
+
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                                {error}
+                            </div>
+                        )}
+
+                        {successMessage && (
+                            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                                {successMessage}
+                            </div>
+                        )}
+
                         <div>
                             <label htmlFor="fullName" className="block text-sm font-semibold text-gray-700 mb-2">
                                 Full Name
@@ -70,10 +89,9 @@ function SignUpPage(){
                                 onChange={(e) => setFullName(e.target.value)}
                                 className="w-full flex h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-base ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 placeholder="Enter your name"
-                                required={!isLogin}
                             />
                         </div>
-                        
+
 
                         <div>
                             <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -116,8 +134,8 @@ function SignUpPage(){
 
                     <p className="text-center text-gray-600 text-sm mt-6">
                         {"Already have an account? "}
-                        <Link to="/signin">
-                            <text className="text-emerald-600 font-semibold hover:text-emerald-700">Sign Up</text>
+                        <Link to="/signin" className="text-emerald-600 font-semibold hover:text-emerald-700">
+                            Sign In
                         </Link>
                     </p>
                 </div>
