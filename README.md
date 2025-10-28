@@ -40,6 +40,7 @@ TechGuide’s mission is to bridge the digital divide by making technology educa
 | **Xin** | QA / Testing Automation Engineer | Builds and runs testing suites to ensure functionality, reliability, and accessibility. Oversees bug tracking and quality assurance. |
 | **Munjer** | UI / UX Engineer | Designs intuitive, accessible interfaces using Figma. Conducts user-flow testing and refines layouts for senior-friendly usability. |
 | **Timson** | Full Stack Engineer | Collaborates on both front-end and back-end development. Focuses on feature implementation, debugging, and integration testing. |
+| **Mamuna** | Full Stack Engineer | Develops and maintains both front-end and back-end features, ensuring smooth application flow through testing, and seamless integration of core functionalities. |
 
 ---
 
