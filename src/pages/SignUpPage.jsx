@@ -22,7 +22,7 @@ function SignUpPage() {
         setError("");
         setSuccessMessage("");
 
-        const result = await signUpNewUser(email, password);
+        const result = await signUpNewUser(email, password, firstName, lastName);
 
         if (result.success) {
             setSuccessMessage("Account created successfully! Check your email to verify your account.");

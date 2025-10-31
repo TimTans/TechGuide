@@ -10,15 +10,35 @@ export const supabase = createClient(url, apikey);
 export const AuthContextProvider = ({ children }) => {
     const [session, setSession] = useState(null);
 
-    const signUpNewUser = async (email, password) => {
+    const signUpNewUser = async (email, password, firstName, lastName) => {
         const { data, error } = await supabase.auth.signUp({
             email: email,
-            password: password
+            password: password,
+            options: {
+                data: {
+                    first_name: firstName,
+                    last_name: lastName,
+                    is_active: true
+                }
+            }
         })
 
-        if (error) {
-            console.error('Issue signing up.', error)
-            return { success: false, error }
+        // Insert user data into the users table
+        if (data.user) {
+            const { error: insertError } = await supabase
+                .from('users')
+                .insert({
+                    user_id: data.user.id,
+                    email: email,
+                    first_name: firstName,
+                    last_name: lastName,
+                    is_active: true
+                })
+
+            if (insertError) {
+                console.error('Error inserting user data:', insertError)
+                return { success: false, error: insertError }
+            }
         }
 
         return { success: true }
