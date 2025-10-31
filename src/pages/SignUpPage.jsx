@@ -25,16 +25,12 @@ function SignUpPage() {
         const result = await signUpNewUser(email, password, firstName, lastName);
 
         if (result.success) {
-            setSuccessMessage("Account created successfully! Check your email to verify your account.");
+            setSuccessMessage("Account created successfully! Please check your email to verify your account before signing in.");
             // Clear form
-            setfirstName("");
-            setlastName("");
+            setFirstName("");
+            setLastName("");
             setEmail("");
             setPassword("");
-            // Optionally redirect after a delay
-            setTimeout(() => {
-                navigate("/signin");
-            }, 4000);
         } else {
             setError(result.error?.message || "Failed to create account. Please try again.");
         }
@@ -76,7 +72,9 @@ function SignUpPage() {
 
                         {successMessage && (
                             <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-                                {successMessage}
+                                <p className="font-semibold mb-2">{successMessage}</p>
+                                <p className="text-sm">We've sent a confirmation link to your email address. Please click the link to verify your account.</p>
+                                <p className="text-sm mt-1 text-green-600">Don't forget to check your spam folder if you don't see it!</p>
                             </div>
                         )}
 

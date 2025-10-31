@@ -112,13 +112,7 @@ export default function Dashboard() {
                         <div>
                             <h1 className="text-5xl md:text-6xl font-black text-gray-900 mb-3">
                                 Welcome Back{userData?.first_name ? `, ${userData.first_name}` : ''}
-
                             </h1>
-                            {user?.email && (
-                                <p className="text-xl text-gray-600">
-                                    {user.email.split('@')[0]}
-                                </p>
-                            )}
                         </div>
                         <div className="flex gap-3">
                             <div className="bg-white rounded-3xl shadow-md p-6 min-w-[140px] text-center hover:shadow-xl transition-shadow">

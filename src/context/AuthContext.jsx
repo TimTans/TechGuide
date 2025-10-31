@@ -23,25 +23,13 @@ export const AuthContextProvider = ({ children }) => {
             }
         })
 
-        // Insert user data into the users table
-        if (data.user) {
-            const { error: insertError } = await supabase
-                .from('users')
-                .insert({
-                    user_id: data.user.id,
-                    email: email,
-                    first_name: firstName,
-                    last_name: lastName,
-                    is_active: true
-                })
-
-            if (insertError) {
-                console.error('Error inserting user data:', insertError)
-                return { success: false, error: insertError }
-            }
+        if (error) {
+            console.error('Error signing up:', error)
+            return { success: false, error }
         }
 
-        return { success: true }
+        // The database trigger will automatically create the user record
+        return { success: true, data }
     }
 
     const signIn = async (email, password) => {
