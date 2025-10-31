@@ -12,9 +12,10 @@ function SignUpPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
-
+    const [countdown, setCountdown] = useState(5);
     const { session, signUpNewUser } = UserAuth();
     const navigate = useNavigate();
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -26,11 +27,26 @@ function SignUpPage() {
 
         if (result.success) {
             setSuccessMessage("Account created successfully! Please check your email to verify your account before signing in.");
+
             // Clear form
             setFirstName("");
             setLastName("");
             setEmail("");
             setPassword("");
+
+            // Start countdown and redirect after 10 seconds
+            let timeLeft = 10;
+            setCountdown(timeLeft);
+
+            const interval = setInterval(() => {
+                timeLeft--;
+                setCountdown(timeLeft);
+
+                if (timeLeft === 0) {
+                    clearInterval(interval);
+                    navigate("/signin");
+                }
+            }, 1000);
         } else {
             setError(result.error?.message || "Failed to create account. Please try again.");
         }
@@ -75,6 +91,11 @@ function SignUpPage() {
                                 <p className="font-semibold mb-2">{successMessage}</p>
                                 <p className="text-sm">We've sent a confirmation link to your email address. Please click the link to verify your account.</p>
                                 <p className="text-sm mt-1 text-green-600">Don't forget to check your spam folder if you don't see it!</p>
+                                {countdown !== null && (
+                                    <p className="text-sm mt-2 font-semibold text-green-800">
+                                        Redirecting to sign in in {countdown} second{countdown !== 1 ? 's' : ''}...
+                                    </p>
+                                )}
                             </div>
                         )}
 
