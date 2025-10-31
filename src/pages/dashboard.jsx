@@ -174,7 +174,7 @@ export default function Dashboard() {
                                     return (
                                         <div
                                             key={tutorial.id}
-                                            className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+                                            className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer group flex flex-col"
                                         >
                                             <div className="flex items-start justify-between mb-4">
                                                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${tutorial.color === 'blue' ? 'bg-blue-100' :
@@ -197,24 +197,22 @@ export default function Dashboard() {
                                             <h3 className="text-xl font-bold text-gray-900 mb-2">{tutorial.title}</h3>
                                             <p className="text-gray-600 text-sm mb-4 leading-relaxed">{tutorial.description}</p>
 
-                                            {hasProgress && (
-                                                <div className="mb-4">
-                                                    <div className="flex justify-between text-xs font-semibold mb-2">
-                                                        <span className="text-gray-600">{tutorial.lessons} lessons</span>
-                                                        <span className="text-gray-900">{tutorial.progress}% Complete</span>
-                                                    </div>
-                                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                        <div
-                                                            className={`h-full ${tutorial.color === 'blue' ? 'bg-blue-500' :
-                                                                tutorial.color === 'purple' ? 'bg-purple-500' :
-                                                                    tutorial.color === 'pink' ? 'bg-pink-500' :
-                                                                        'bg-emerald-500'
-                                                                }`}
-                                                            style={{ width: `${tutorial.progress}%` }}
-                                                        ></div>
-                                                    </div>
+                                            <div className="mb-4 mt-auto">
+                                                <div className="flex justify-between text-xs font-semibold mb-2">
+                                                    <span className="text-gray-600">{tutorial.lessons} lessons</span>
+                                                    <span className="text-gray-900">{tutorial.progress}% Complete</span>
                                                 </div>
-                                            )}
+                                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full ${tutorial.color === 'blue' ? 'bg-blue-500' :
+                                                            tutorial.color === 'purple' ? 'bg-purple-500' :
+                                                                tutorial.color === 'pink' ? 'bg-pink-500' :
+                                                                    'bg-emerald-500'
+                                                            }`}
+                                                        style={{ width: `${tutorial.progress}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
 
                                             <button className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 group-hover:gap-3">
                                                 {hasProgress ? 'Continue Learning' : 'Start Course'}
