@@ -26,7 +26,7 @@ export default function HomePage() {
                             <a href="#tutorials" className="text-sm font-semibold text-gray-700 hover:text-gray-900">TUTORIALS</a>
                             <a href="#safety" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SAFETY</a>
                             <a href="#support" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SUPPORT</a>
-                            <a href="#about" className="text-sm font-semibold text-gray-700 hover:text-gray-900">ABOUT</a>
+                            <Link to="/about" className="text-sm font-semibold text-gray-700 hover:text-gray-900">ABOUT</Link>
                         </nav>
                         <div className={`flex items-center transition-all duration-300 ${showPhoneNumber ? 'gap-2' : 'gap-0'}`}>
                             <div className="hidden md:flex items-center overflow-hidden">
@@ -106,10 +106,13 @@ export default function HomePage() {
                             <br />
                             The Digital World Safely
                         </h2>
-                        <button className="mt-8 inline-flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
+
+                        <Link to="/about">
+                            <button className="mt-8 inline-flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
                             LEARN MORE
                             <ArrowRight className="w-5 h-5" />
-                        </button>
+                            </button>
+                        </Link>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">

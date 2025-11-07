@@ -6,6 +6,7 @@ import AllCourses from "./pages/AllCourses";
 import ConfirmPage from "./pages/confirmpage";
 import Settings from "./pages/settings";
 import UserProfile from "./pages/userprofile";
+import About from "./pages/about";
 import App from "./App";
 
 
@@ -17,5 +18,6 @@ export const router = createBrowserRouter([
     { path: "/dashboard", element: <Dashboard /> },
     { path: "/allcourses", element: <AllCourses /> },
     { path: "/settings", element: <Settings /> },
-    { path: "/userprofile", element: <UserProfile /> }
+    { path: "/userprofile", element: <UserProfile /> },
+    { path: "/about", element: <About /> }
 ])
