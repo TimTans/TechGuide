@@ -8,7 +8,7 @@ const folder_name = "reports";
 //We will store all reports in the reports folder
 mkdirSync(folder_name, {recursive: true});
 //the block of code below will name the file of the reports by date
-const now = () => new Date().toISOString().replace("/[:.]g", "-");
+const now = () => new Date().toISOString().replace(/[:.]/g, "-");
 const out = (name) => join(folder_name, `${now()}-${name}`);
 //Will allow use to run commands 
 function run(commands, outputss={}){
