@@ -10,6 +10,7 @@ export const supabase = createClient(url, apikey);
 export const AuthContextProvider = ({ children }) => {
     const [session, setSession] = useState(null);
 
+    // Added user role for input here.
     const signUpNewUser = async (email, password, firstName, lastName, userRole) => {
         // Check if email already exists using RPC
         const { data: emailExists, error: checkError } = await supabase

@@ -23,7 +23,7 @@ function SignUpPage() {
         setLoading(true);
         setError("");
         setSuccessMessage("");
-
+        
         const result = await signUpNewUser(email, password, firstName, lastName);
 
         if (result.success) {
