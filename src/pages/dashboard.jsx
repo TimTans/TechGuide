@@ -37,6 +37,11 @@ export default function Dashboard() {
         totalLessons: 24,
         streak: 5,
     };
+    
+    // Calculation for progress bar
+    const progressPercentage = Math.round(
+        (userProgress.completedLessons / userProgress.totalLessons) * 100
+    );
 
     const tutorials = [
         {
@@ -125,6 +130,29 @@ export default function Dashboard() {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="lg:col-span-3 bg-white rounded-3xl shadow-lg p-6 md:p-8 border border-gray-100 mb-8">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-bold text-gray-900">
+                            Your Learning Progress
+                        </h3>
+                        <span className="text-2xl font-black text-emerald-600">
+                            {progressPercentage}%
+                        </span>
+                    </div>
+                    {/* The Progress Bar Container */}
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                        {/* The Progress Bar Fill */}
+                        <div
+                            className="bg-emerald-500 h-3 rounded-full transition-all duration-500"
+                            style={{ width: `${progressPercentage}%` }}
+                        ></div>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-3">
+                        {userProgress.completedLessons} of {userProgress.totalLessons} lessons completed. Keep going!
+                    </p>
                 </div>
 
                 {/* Main Content Grid */}
@@ -236,10 +264,12 @@ export default function Dashboard() {
                                 <p className="text-gray-600 text-sm mb-4 leading-relaxed">
                                     Be aware of fake IRS phone calls. The IRS will never call to demand immediate payment.
                                 </p>
-                                <button className="text-sm font-semibold text-red-600 hover:text-red-700 flex items-center gap-1">
-                                    Learn More
-                                    <ArrowRight className="w-4 h-4" />
-                                </button>
+                                <Link to="/safety">
+                                    <button className="text-sm font-semibold text-red-600 hover:text-red-700 flex items-center gap-1">
+                                        Learn More
+                                        <ArrowRight className="w-4 h-4" />
+                                    </button>
+                                </Link>
                             </div>
                         </div>
 
