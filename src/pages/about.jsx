@@ -6,7 +6,7 @@ export default function About() {
   const [showPhoneNumber, setShowPhoneNumber] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-orange-50 to-rose-50">
+    <div className="min-h-screen bg-linear-to-b from-white via-orange-50 to-rose-50">
       {/* Header - Matching Homepage */}
       <header>
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-5 flex items-center justify-between">
@@ -32,7 +32,7 @@ export default function About() {
                 <Phone className="w-5 h-5" />
               </button>
               <div
-                className={`flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-full shadow-lg transition-all duration-500 ease-out ${showPhoneNumber
+                className={`flex items-center gap-2 bg-linear-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-full shadow-lg transition-all duration-500 ease-out ${showPhoneNumber
                   ? 'max-w-xs opacity-100 ml-1'
                   : 'max-w-0 opacity-0 ml-0'
                   }`}
@@ -66,7 +66,7 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Mission */}
-            <div className="bg-gradient-to-b from-blue-50 to-blue-100 rounded-3xl p-8">
+            <div className="bg-linear-to-b from-blue-50 to-blue-100 rounded-3xl p-8">
               <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mb-6">
                 <Target className="w-6 h-6 text-white" />
               </div>
@@ -77,7 +77,7 @@ export default function About() {
             </div>
 
             {/* Heart */}
-            <div className="bg-gradient-to-b from-rose-50 to-rose-100 rounded-3xl p-8">
+            <div className="bg-linear-to-b from-rose-50 to-rose-100 rounded-3xl p-8">
               <div className="w-12 h-12 bg-rose-600 rounded-full flex items-center justify-center mb-6">
                 <Heart className="w-6 h-6 text-white" />
               </div>
@@ -88,7 +88,7 @@ export default function About() {
             </div>
 
             {/* Community */}
-            <div className="bg-gradient-to-b from-emerald-50 to-emerald-100 rounded-3xl p-8">
+            <div className="bg-linear-to-b from-emerald-50 to-emerald-100 rounded-3xl p-8">
               <div className="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center mb-6">
                 <Users className="w-6 h-6 text-white" />
               </div>
