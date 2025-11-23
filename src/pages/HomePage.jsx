@@ -11,10 +11,6 @@ export default function HomePage() {
 
     const { session, signUpNewUser, signOut, signIn } = UserAuth();
 
-    console.log(session)
-
-
-
     return (
         <div>
             <div className="min-h-80 min-w-screen bg-linear-to-b from-white100 via-orange-100 to-rose-100">
