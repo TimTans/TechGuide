@@ -1,10 +1,13 @@
-import { Monitor, Phone, ArrowRight, Smartphone, Lock, Users } from "lucide-react";
+import { Monitor, Phone, ArrowRight, Smartphone, Lock, Users, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { UserAuth } from "../context/AuthContext";
 
 export default function HomePage() {
     const [showPhoneNumber, setShowPhoneNumber] = useState(false);
+    const [showAccessibility, setShowAccessibility] = useState(false)
+    // This later would depend on cookies or whatever saves the users dark mode state.
+    const [darkMode, setDarkMode] = useState(false)
 
     const { session, signUpNewUser, signOut, signIn } = UserAuth();
 
@@ -51,6 +54,40 @@ export default function HomePage() {
                             <Link to="/signup" className={`bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-gray-800 transition-all duration-300 ${showPhoneNumber ? 'ml-0' : '-ml-2'}`}>
                                 GET STARTED
                             </Link>
+                            <div className="">
+                                <div className="w-full h-full p-2 flex-column">
+                                    <button
+                                        className="w-full h-full p-2"
+                                        onClick={()=> setShowAccessibility((prev) => !prev)}
+                                    >
+                                        <Settings/>
+                                    </button>
+                                    <div className= {`w-40 h-21 absolute transition-all duration-300 bg-gray-200 rounded-xl p-3 
+                                        ${showAccessibility ? 'opacity-100' : 'opacity-0'}
+                                        ${showAccessibility ? 'pointer-events-auto' : 'pointer-events-none'}
+                                        `}>
+                                           
+                                        <div className="w-full h-1/2 flex justify-start text-sm font-semibold items-center">
+
+                                            <span className="w-3/4">Dark Mode</span>
+ 
+                                            <div className={`w-1/2 h-7/8 rounded-[14px] flex pl-1 pr-1 transition-all duration-300 ${darkMode? 'bg-black' : 'bg-gray-300'}`}>
+                                                <button className={`w-6/11 h-9/10 rounded-[14px] mt-auto mb-auto bg-gray-100 transition-all duration-300 
+                                                    ${darkMode? 'translate-x-5' : ''}`
+                                                }
+                                                    onClick={()=>setDarkMode(!darkMode)}    
+                                                >
+                                                </button>
+                                            </div>
+                                            
+                                        </div>
+                                    </div>
+
+
+                                </div>
+                            </div>
+
+
                         </div>
                     </div>
                 </header>
