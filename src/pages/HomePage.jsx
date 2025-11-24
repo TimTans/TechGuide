@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { UserAuth } from "../context/AuthContext";
 
+
+
 export default function HomePage() {
     const [showPhoneNumber, setShowPhoneNumber] = useState(false);
 
