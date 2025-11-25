@@ -23,7 +23,7 @@ export default function HomePage() {
                         <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
                             <Link to="/tutorials" className="text-sm font-semibold text-gray-700 hover:text-gray-900">TUTORIALS</Link>
                             <Link to="/safety" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SAFETY</Link>
-                            <a href="#support" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SUPPORT</a>
+                            <Link to="/support" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SUPPORT</Link>
                             <Link to="/about" className="text-sm font-semibold text-gray-700 hover:text-gray-900">ABOUT</Link>
                         </nav>
                         <div className={`flex items-center transition-all duration-300 ${showPhoneNumber ? 'gap-2' : 'gap-0'}`}>
