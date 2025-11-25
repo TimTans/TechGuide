@@ -9,7 +9,7 @@ import { router } from './router.jsx'
 import { AuthContextProvider } from './context/AuthContext.jsx'
 import { SpeedInsights } from "@vercel/speed-insights/react"
 import { Analytics } from '@vercel/analytics/react'
-import Ttest from './db_query_speed.jsx'
+
 
 
 
@@ -21,7 +21,7 @@ createRoot(document.getElementById('root')).render(
       </AuthContextProvider>
       <SpeedInsights />
       <Analytics />
-      <Ttest/>
+   
       
      
     </>
