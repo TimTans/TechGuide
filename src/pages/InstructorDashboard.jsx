@@ -3,7 +3,7 @@ import {
     Clock, ArrowRight, Bell, Users, Lock, Sparkles, BookOpen, UserCheck, TrendingUp, FileText
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "../App";
+import { supabase } from "../context/AuthContext";
 
 export default function InstructorDashboard({ user }) {
     const navigate = useNavigate();

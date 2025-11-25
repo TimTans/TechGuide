@@ -15,17 +15,17 @@ vi.mock('react-router-dom', async () => {
 
 // Mock supabase - use hoisted to define mock function before mock factory
 const { mockSignOut } = vi.hoisted(() => {
-    return {
-        mockSignOut: vi.fn(),
-    };
+  return {
+    mockSignOut: vi.fn(),
+  };
 });
 
-vi.mock('../../src/App', () => ({
-    supabase: {
-        auth: {
-            signOut: mockSignOut,
-        },
+vi.mock('../../src/context/AuthContext', () => ({
+  supabase: {
+    auth: {
+      signOut: mockSignOut,
     },
+  },
 }));
 
 // Helper function to render component with router
