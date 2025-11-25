@@ -129,10 +129,10 @@ export default function HomePage() {
                                 <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold"># Email Basics</span>
                                 <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold"># Video Calls</span>
                             </div>
-                            <button className="flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
+                            <Link to="/tutorials" className="flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
                                 View Tutorials
                                 <ArrowRight className="w-5 h-5" />
-                            </button>
+                            </Link>
                         </div>
 
                         {/* Card 2*/}
@@ -150,10 +150,10 @@ export default function HomePage() {
                                 <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold"># Scam Detection</span>
                                 <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold"># Privacy</span>
                             </div>
-                            <button className="flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
+                            <Link to="/safety" className="flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
                                 Safety Resources
                                 <ArrowRight className="w-5 h-5" />
-                            </button>
+                            </Link>
                         </div>
 
                         {/* Card 3*/}
@@ -176,9 +176,9 @@ export default function HomePage() {
                                 <span className="text-sm font-semibold text-gray-700">Join Our Community</span>
                             </div>
                             <button className="flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
-                                Get Help Now
-                                <ArrowRight className="w-5 h-5" />
-                            </button>
+                                 Get Help Now 
+                                 <ArrowRight className="w-5 h-5" /> 
+                                 </button>
                         </div>
                     </div>
                 </div>
