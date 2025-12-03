@@ -3,14 +3,12 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { UserAuth } from "../context/AuthContext";
 
+
+
 export default function HomePage() {
     const [showPhoneNumber, setShowPhoneNumber] = useState(false);
 
     const { session, signUpNewUser, signOut, signIn } = UserAuth();
-
-    console.log(session)
-
-
 
     return (
         <div>
@@ -23,9 +21,9 @@ export default function HomePage() {
                             <span className="text-xl font-bold text-gray-900">TECHGUIDE</span>
                         </div>
                         <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-                            <a href="#tutorials" className="text-sm font-semibold text-gray-700 hover:text-gray-900">TUTORIALS</a>
-                            <a href="#safety" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SAFETY</a>
-                            <a href="#support" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SUPPORT</a>
+                            <Link to="/tutorials" className="text-sm font-semibold text-gray-700 hover:text-gray-900">TUTORIALS</Link>
+                            <Link to="/safety" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SAFETY</Link>
+                            <Link to="/support" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SUPPORT</Link>
                             <Link to="/about" className="text-sm font-semibold text-gray-700 hover:text-gray-900">ABOUT</Link>
                         </nav>
                         <div className={`flex items-center transition-all duration-300 ${showPhoneNumber ? 'gap-2' : 'gap-0'}`}>
@@ -131,10 +129,10 @@ export default function HomePage() {
                                 <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold"># Email Basics</span>
                                 <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold"># Video Calls</span>
                             </div>
-                            <button className="flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
+                            <Link to="/tutorials" className="flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
                                 View Tutorials
                                 <ArrowRight className="w-5 h-5" />
-                            </button>
+                            </Link>
                         </div>
 
                         {/* Card 2*/}
@@ -152,10 +150,10 @@ export default function HomePage() {
                                 <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold"># Scam Detection</span>
                                 <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold"># Privacy</span>
                             </div>
-                            <button className="flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
+                            <Link to="/safety" className="flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
                                 Safety Resources
                                 <ArrowRight className="w-5 h-5" />
-                            </button>
+                            </Link>
                         </div>
 
                         {/* Card 3*/}
@@ -178,9 +176,9 @@ export default function HomePage() {
                                 <span className="text-sm font-semibold text-gray-700">Join Our Community</span>
                             </div>
                             <button className="flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
-                                Get Help Now
-                                <ArrowRight className="w-5 h-5" />
-                            </button>
+                                 Get Help Now 
+                                 <ArrowRight className="w-5 h-5" /> 
+                                 </button>
                         </div>
                     </div>
                 </div>

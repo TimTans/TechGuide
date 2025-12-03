@@ -123,7 +123,7 @@ function SignUpPage() {
                                 />
                             </div>
                             <div>
-                                <label htmlFor="Last Name" className="block text-sm font-semibold text-gray-700 mb-2">
+                                <label htmlFor="lastName" className="block text-sm font-semibold text-gray-700 mb-2">
                                     Last Name
                                 </label>
                                 <input
@@ -168,10 +168,10 @@ function SignUpPage() {
                         </div>
 
                         <div className = "ml-auto">
-                            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label htmlFor="userRole" className="block text-sm font-semibold text-gray-700 mb-2">
                                 Register as?
                             </label>
-                            <select value={userRole} onChange={(e)=>setUserRole(e.target.value)} required className="block w-60 p-2 border border-gray-300 rounded-lg bg-white text-gray-800 focus:ring-blue-500 focus:border-blue-500" >
+                            <select id="userRole" value={userRole} onChange={(e)=>setUserRole(e.target.value)} required className="block w-60 p-2 border border-gray-300 rounded-lg bg-white text-gray-800 focus:ring-blue-500 focus:border-blue-500" >
                                 <option value="">-- choose an option --</option>
                                 <option value="Student">Student</option>
                                 <option value="Instructor">Instructor</option>

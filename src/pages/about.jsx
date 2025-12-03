@@ -15,8 +15,8 @@ export default function About() {
             <span className="text-xl font-bold text-gray-900">TECHGUIDE</span>
           </Link>
           <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-            <a href="/#tutorials" className="text-sm font-semibold text-gray-700 hover:text-gray-900">TUTORIALS</a>
-            <a href="/#safety" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SAFETY</a>
+            <Link to="/tutorials" className="text-sm font-semibold text-gray-700 hover:text-gray-900">TUTORIALS</Link>
+            <Link to="/safety" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SAFETY</Link>
             <a href="/#support" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SUPPORT</a>
             <Link to="/about" className="text-sm font-semibold text-gray-700 hover:text-gray-900">ABOUT</Link>
           </nav>
@@ -156,18 +156,18 @@ export default function About() {
             Ready To Start Your Journey?
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Join hundreds of seniors who've discovered the joy and independence that comes with digital confidence.
+            Join hundreds of seniors who've discovered the joy, independence, & safety that comes with digital confidence.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link to="/signup">
               <button className="bg-emerald-500 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-emerald-600 transition-colors shadow-lg">
-                START LEARNING
+                START LEARNING NOW
               </button>
             </Link>
 
             <Link to="/">
               <button className="bg-white text-gray-900 px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-50 transition-colors border-2 border-gray-200 flex items-center gap-2">
-                BACK TO HOME
+                BACK TO HOME PAGE
                 <ArrowRight className="w-5 h-5" />
               </button>
             </Link>

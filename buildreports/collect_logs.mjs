@@ -23,11 +23,7 @@ function count(str,pattern){
 console.log("Builds and Time Recorded");
 const timebefore= performance.now();
 let space ="";
-      //new
-//spawn is basically allowing you to run a new process in the project itself.
-//completely separate from your project although it is within your project.
-//Since it is a separate "entity" from your project, it is like two projects, but second is within your first project.
-//The better word is "program" so having two separate programs where the is parent=first progarm and the child=second program
+
 try{
     space = execSync("npm run build", {encoding: "utf8"});
 } catch (e){
