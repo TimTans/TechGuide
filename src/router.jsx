@@ -26,10 +26,9 @@ export const router = createBrowserRouter([
     { path: "/settings", element: <Settings /> },
     { path: "/userprofile", element: <UserProfile /> },
     { path: "/about", element: <About /> },
-    // { path: "/tutorials", element: <Tutorials /> },
     { path: "/safety", element: <Safety /> },
     // { path: "/support", element: <Support /> },
-    { path: "/instructor", element: <InstructorDashboard /> }
+    { path: "/instructor", element: <InstructorDashboard /> },
     { path: "/tutorials", element: <Tutorials /> },
     { path: "/safety", element: <Safety /> },
     { path: "/support", element: <Support /> }
