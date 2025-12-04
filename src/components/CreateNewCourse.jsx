@@ -33,7 +33,6 @@ export default function CreateNewCourse({ isOpen, onClose, onSuccess }) {
                 }
 
                 try {
-                    console.log("Fetching categories from Supabase...");
                     const { data, error } = await supabase
                         .from("categories")
                         .select("category_id, category_name")
@@ -50,10 +49,7 @@ export default function CreateNewCourse({ isOpen, onClose, onSuccess }) {
                             hint: error.hint,
                             code: error.code
                         });
-                        // Don't set form error, just log it - categories might fail due to RLS
-                        console.warn("Categories fetch failed. This might be a Supabase RLS policy issue.");
                     } else {
-                        console.log("Categories fetched successfully:", data);
                         setCategories(data || []);
                         if (!data || data.length === 0) {
                             console.warn("No categories found in database. Make sure you've inserted categories.");
@@ -167,26 +163,44 @@ export default function CreateNewCourse({ isOpen, onClose, onSuccess }) {
                 return;
             }
 
+            // Prepare data for insertion
+            const courseData = {
+                category_id: parseInt(formData.category_id, 10),
+                title: formData.title.trim(),
+                description: formData.description.trim(),
+                difficulty_level: formData.difficulty_level,
+                estimated_duration: parseInt(formData.estimated_duration, 10),
+                video_url: formData.video_url && formData.video_url.trim() !== ""
+                    ? formData.video_url.trim()
+                    : null
+            };
+
+            // Validate numeric fields
+            if (isNaN(courseData.category_id) || courseData.category_id <= 0) {
+                setError("Invalid category selected");
+                setLoading(false);
+                return;
+            }
+
+            if (isNaN(courseData.estimated_duration) || courseData.estimated_duration <= 0) {
+                setError("Estimated duration must be a positive number");
+                setLoading(false);
+                return;
+            }
+
             // Proceed with course creation
             const { data, error } = await supabase
                 .from("tutorials")
-                .insert([
-                    {
-                        category_id: parseInt(formData.category_id),
-                        title: formData.title,
-                        description: formData.description,
-                        difficulty_level: formData.difficulty_level,
-                        estimated_duration: parseInt(formData.estimated_duration),
-                        video_url: formData.video_url || null
-                    }
-                ])
+                .insert([courseData])
                 .select();
 
             if (error) {
                 console.error("Error creating course:", error);
                 setError(error.message || "Failed to create course. Please try again.");
-            } else {
-                setSuccess("Course created successfully!");
+            } else if (data && data.length > 0) {
+                // Course successfully created and returned from database
+                const createdCourse = data[0];
+                setSuccess(`Course "${createdCourse.title}" created successfully!`);
                 // Reset form
                 setFormData({
                     category_id: "",
@@ -208,6 +222,8 @@ export default function CreateNewCourse({ isOpen, onClose, onSuccess }) {
                     }
                     window.location.reload();
                 }, 1500);
+            } else {
+                setError("Course creation completed but no data was returned. Please refresh to verify.");
             }
         } catch (err) {
             console.error("Error creating course:", err);
