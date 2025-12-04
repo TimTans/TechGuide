@@ -78,6 +78,37 @@ export default function InstructorDashboard({ user }) {
         }
 
         try {
+            // Check user role before allowing course creation
+            const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+            if (authError || !authUser) {
+                setError("Authentication error. Please sign in again.");
+                setLoading(false);
+                return;
+            }
+
+            // Fetch user role from users table
+            const { data: userData, error: userError } = await supabase
+                .from("users")
+                .select("user_role")
+                .eq("user_id", authUser.id)
+                .single();
+
+            if (userError) {
+                console.error("Error fetching user role:", userError);
+                setError("Error verifying permissions. Please try again.");
+                setLoading(false);
+                return;
+            }
+
+            // Check if user_role is instructor
+            if (!userData || userData.user_role !== "instructor") {
+                setError("Permission denied");
+                setLoading(false);
+                return;
+            }
+
+            // Proceed with course creation
             const { data, error } = await supabase
                 .from("tutorials")
                 .insert([
