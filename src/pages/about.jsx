@@ -1,4 +1,4 @@
-import { Monitor, Phone, Heart, Target, Users, Award, ArrowRight } from "lucide-react";
+import { Monitor, Phone, Heart, Target, Users, Award, ArrowRight, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 
@@ -6,9 +6,9 @@ export default function About() {
   const [showPhoneNumber, setShowPhoneNumber] = useState(false);
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-white via-orange-50 to-rose-50">
+    <div className="min-h-screen">
       {/* Header - Matching Homepage */}
-      <header>
+      <header className="bg-orange-50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-5 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <Monitor className="w-8 h-8 text-gray-900" />
@@ -17,7 +17,7 @@ export default function About() {
           <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
             <Link to="/tutorials" className="text-sm font-semibold text-gray-700 hover:text-gray-900">TUTORIALS</Link>
             <Link to="/safety" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SAFETY</Link>
-            <a href="/#support" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SUPPORT</a>
+            <Link to="/support" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SUPPORT</Link>
             <Link to="/about" className="text-sm font-semibold text-gray-700 hover:text-gray-900">ABOUT</Link>
           </nav>
           <div className={`flex items-center transition-all duration-300 ${showPhoneNumber ? 'gap-2' : 'gap-0'}`}>
@@ -47,22 +47,33 @@ export default function About() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-6 lg:px-8 pt-32 pb-20">
-        <div className="text-center">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 leading-tight mb-8">
-            Bridging The Digital Divide
-            <br />
-            One Senior At A Time
-          </h1>
-          <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            We believe technology should empower everyone, regardless of age. That's why we're dedicated to helping seniors navigate the digital world with confidence and safety.
-          </p>
-        </div>
+      {/* Hero Section - First Screen */}
+      <section className="bg-orange-50">
+        <main className="max-w-7xl mx-auto px-6 lg:px-8 py-12 pb-32 md:pb-40">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-4 mb-8">
+            <Link to="/" className="text-sm font-semibold text-gray-500 hover:text-gray-900 flex items-center gap-1">
+              <Home className="w-4 h-4" /> Home
+            </Link>
+            <span className="text-gray-400">/</span>
+            <h1 className="text-sm font-semibold text-blue-700">About</h1>
+          </div>
+
+          <div className="text-center">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 leading-tight mb-8 py-16">
+              Bridging The Digital Divide
+              <br />
+              One Senior At A Time
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+              We believe technology should empower everyone, regardless of age. That's why we're dedicated to helping seniors navigate the digital world with confidence and safety.
+            </p>
+          </div>
+        </main>
       </section>
 
-      {/* Mission & Values */}
-      <section className="py-20 bg-white">
+      {/* Mission & Values - Second Screen */}
+      <section className="bg-gray-50 pt-20 md:pt-32 pb-20 md:pb-32">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Mission */}
@@ -101,13 +112,13 @@ export default function About() {
         </div>
       </section>
 
-      {/* Our Story */}
-      <section className="py-20">
+      {/* Our Story - Third Screen (same as first) */}
+      <section className="bg-orange-50 py-20 md:py-32">
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">Our Story</h2>
           </div>
-          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-lg">
+          <div className="bg-transparent rounded-3xl p-8 md:p-12">
             <p className="text-lg text-gray-700 leading-relaxed mb-6">
               TechGuide was founded when we noticed our own parents and grandparents struggling to keep up with rapidly changing technology. They wanted to video call their grandchildren, shop online safely, and stay connected with friends—but felt overwhelmed and afraid of making mistakes.
             </p>

@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import { Monitor, Phone } from "lucide-react";
+import { Monitor, Phone, Home } from "lucide-react";
 
-export default function About() {
+export default function Tutorials() {
   const [showPhoneNumber, setShowPhoneNumber] = useState(false);
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-white via-orange-50 to-rose-50">
+    <div className="min-h-screen bg-linear-to-b from-orange-50 via-orange-50 to-white">
       
       {/* Header */}
       <header>
@@ -19,7 +19,7 @@ export default function About() {
           <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
             <Link to="/tutorials" className="text-sm font-semibold text-gray-700 hover:text-gray-900">TUTORIALS</Link>
             <Link to="/safety" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SAFETY</Link>
-            <a href="/#support" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SUPPORT</a>
+            <Link to="/support" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SUPPORT</Link>
             <Link to="/about" className="text-sm font-semibold text-gray-700 hover:text-gray-900">ABOUT</Link>
           </nav>
 
@@ -58,7 +58,16 @@ export default function About() {
       </header>
 
       {/* ---------------- MAIN CONTENT ---------------- */}
-      <main className="max-w-5xl mx-auto px-6 py-16">
+      <main className="max-w-7xl mx-auto px-6 lg:px-8 py-12 pb-20">
+        
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-4 mb-8">
+          <Link to="/" className="text-sm font-semibold text-gray-500 hover:text-gray-900 flex items-center gap-1">
+            <Home className="w-4 h-4" /> Home
+          </Link>
+          <span className="text-gray-400">/</span>
+          <h1 className="text-sm font-semibold text-emerald-700">Tutorials</h1>
+        </div>
 
         <h1 className="text-4xl font-bold text-gray-900 mb-6">Learn with TechGuide</h1>
         <p className="text-gray-700 text-lg leading-relaxed mb-10">
