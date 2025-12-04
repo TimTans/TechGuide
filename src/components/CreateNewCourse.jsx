@@ -1,9 +1,10 @@
 import { AlertTriangle, CheckCircle, Clock, X } from "lucide-react";
 import { supabase } from "../context/AuthContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function CreateNewCourse({ isOpen, onClose, onSuccess }) {
     const [categories, setCategories] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(false);
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         category_id: "",
@@ -15,30 +16,83 @@ export default function CreateNewCourse({ isOpen, onClose, onSuccess }) {
     });
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const isMountedRef = useRef(true);
+    const timeoutRef = useRef(null);
 
     // Fetch categories when modal opens
     useEffect(() => {
         if (isOpen) {
+            let isCancelled = false; // Flag to track if effect was cancelled
+
             const fetchCategories = async () => {
+                // Check if component is still mounted before starting
+                if (!isMountedRef.current) return;
+
+                if (!isCancelled && isMountedRef.current) {
+                    setLoadingCategories(true);
+                }
+
                 try {
+                    console.log("Fetching categories from Supabase...");
                     const { data, error } = await supabase
                         .from("categories")
                         .select("category_id, category_name")
                         .order("display_order", { ascending: true });
 
+                    // Check if component is still mounted before updating state
+                    if (isCancelled || !isMountedRef.current) return;
+
                     if (error) {
                         console.error("Error fetching categories:", error);
+                        console.error("Error details:", {
+                            message: error.message,
+                            details: error.details,
+                            hint: error.hint,
+                            code: error.code
+                        });
+                        // Don't set form error, just log it - categories might fail due to RLS
+                        console.warn("Categories fetch failed. This might be a Supabase RLS policy issue.");
                     } else {
+                        console.log("Categories fetched successfully:", data);
                         setCategories(data || []);
+                        if (!data || data.length === 0) {
+                            console.warn("No categories found in database. Make sure you've inserted categories.");
+                        }
                     }
                 } catch (err) {
-                    console.error("Error fetching categories:", err);
+                    // Check if component is still mounted before logging
+                    if (!isCancelled && isMountedRef.current) {
+                        console.error("Exception fetching categories:", err);
+                        console.warn("Categories fetch exception. Check Supabase connection and RLS policies.");
+                    }
+                } finally {
+                    // Only update loading state if component is still mounted
+                    if (!isCancelled && isMountedRef.current) {
+                        setLoadingCategories(false);
+                    }
                 }
             };
 
             fetchCategories();
+
+            // Cleanup function: set flag to prevent state updates
+            return () => {
+                isCancelled = true;
+            };
         }
     }, [isOpen]);
+
+    // Track component mount status
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            // Clear any pending timeouts on unmount
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+        };
+    }, []);
 
     // Reset form when modal closes
     useEffect(() => {
@@ -143,8 +197,11 @@ export default function CreateNewCourse({ isOpen, onClose, onSuccess }) {
                     video_url: ""
                 });
                 // Close modal after 1.5 seconds and trigger refresh
-                setTimeout(() => {
-                    setSuccess("");
+                timeoutRef.current = setTimeout(() => {
+                    // Only update state if component is still mounted
+                    if (isMountedRef.current) {
+                        setSuccess("");
+                    }
                     onClose();
                     if (onSuccess) {
                         onSuccess();
@@ -218,21 +275,36 @@ export default function CreateNewCourse({ isOpen, onClose, onSuccess }) {
                         <label htmlFor="category_id" className="block text-sm font-bold text-gray-900 mb-2">
                             Category <span className="text-red-500">*</span>
                         </label>
-                        <select
-                            id="category_id"
-                            name="category_id"
-                            value={formData.category_id}
-                            onChange={handleInputChange}
-                            required
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 bg-white"
-                        >
-                            <option value="">Select a category</option>
-                            {categories.map((category) => (
-                                <option key={category.category_id} value={category.category_id}>
-                                    {category.category_name}
-                                </option>
-                            ))}
-                        </select>
+                        {loadingCategories ? (
+                            <div className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 text-gray-500">
+                                Loading categories...
+                            </div>
+                        ) : (
+                            <select
+                                id="category_id"
+                                name="category_id"
+                                value={formData.category_id}
+                                onChange={handleInputChange}
+                                required
+                                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent text-gray-900 bg-white"
+                            >
+                                <option value="">Select a category</option>
+                                {categories.length === 0 ? (
+                                    <option value="" disabled>No categories available</option>
+                                ) : (
+                                    categories.map((category) => (
+                                        <option key={category.category_id} value={category.category_id}>
+                                            {category.category_name}
+                                        </option>
+                                    ))
+                                )}
+                            </select>
+                        )}
+                        {categories.length === 0 && !loadingCategories && (
+                            <p className="mt-2 text-sm text-amber-600">
+                                ⚠️ No categories found. Check browser console for details or verify Supabase RLS policies.
+                            </p>
+                        )}
                     </div>
 
                     {/* Title */}
@@ -356,4 +428,3 @@ export default function CreateNewCourse({ isOpen, onClose, onSuccess }) {
         </div>
     );
 }
-
