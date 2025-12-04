@@ -1,7 +1,8 @@
-import { Monitor } from "lucide-react";
+import { Monitor, Settings } from "lucide-react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { UserAuth } from "../context/AuthContext";
+import AdminPasswordModal from "../components/AdminPasswordModal";
 
 function SignUpPage() {
 
@@ -9,11 +10,12 @@ function SignUpPage() {
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [userRole, setUserRole] = useState("")
+    const [userRole, setUserRole] = useState("Student")
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [countdown, setCountdown] = useState(5);
+    const [showAdminModal, setShowAdminModal] = useState(false);
     const { session, signUpNewUser } = UserAuth();
     const navigate = useNavigate();
 
@@ -23,8 +25,8 @@ function SignUpPage() {
         setLoading(true);
         setError("");
         setSuccessMessage("");
-        
-        const result = await signUpNewUser(email, password, firstName, lastName);
+
+        const result = await signUpNewUser(email, password, firstName, lastName, userRole);
 
         if (result.success) {
             setSuccessMessage("Account created successfully! Please check your email to verify your account before signing in.");
@@ -34,7 +36,7 @@ function SignUpPage() {
             setLastName("");
             setEmail("");
             setPassword("");
-            setUserRole("")
+            setUserRole("Student")
 
             // Start countdown and redirect after 10 seconds
             let timeLeft = 10;
@@ -167,17 +169,6 @@ function SignUpPage() {
                             />
                         </div>
 
-                        <div className = "ml-auto">
-                            <label htmlFor="userRole" className="block text-sm font-semibold text-gray-700 mb-2">
-                                Register as?
-                            </label>
-                            <select id="userRole" value={userRole} onChange={(e)=>setUserRole(e.target.value)} required className="block w-60 p-2 border border-gray-300 rounded-lg bg-white text-gray-800 focus:ring-blue-500 focus:border-blue-500" >
-                                <option value="">-- choose an option --</option>
-                                <option value="Student">Student</option>
-                                <option value="Instructor">Instructor</option>
-                            </select>
-                        </div>
-                        
 
                         <button
                             type="submit"
@@ -196,6 +187,26 @@ function SignUpPage() {
                     </p>
                 </div>
             </div>
+
+            {/* Subtle Admin Access Button - Bottom Right Corner */}
+            <button
+                onClick={() => setShowAdminModal(true)}
+                className="fixed bottom-4 right-4 w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-full flex items-center justify-center transition-all opacity-30 hover:opacity-60 z-40"
+                title="Admin Access"
+                aria-label="Admin Access"
+            >
+                <Settings className="w-4 h-4 text-gray-600" />
+            </button>
+
+            {/* Admin Password Modal */}
+            <AdminPasswordModal
+                isOpen={showAdminModal}
+                onClose={() => setShowAdminModal(false)}
+                onSuccess={() => {
+                    setShowAdminModal(false);
+                    navigate("/adminsignup");
+                }}
+            />
         </div>
     );
 }

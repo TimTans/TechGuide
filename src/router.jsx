@@ -13,6 +13,7 @@ import Safety from "./pages/safety";
 // import Support from "./pages/support";
 import InstructorDashboard from "./pages/InstructorDashboard";
 import Support from "./pages/SupportPage";
+import AdminSignUpPage from "./pages/adminsignup";
 import App from "./App";
 
 
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
     { path: "/", element: <App /> },
     { path: "/signin", element: <SignInPage /> },
     { path: "/signup", element: <SignUpPage /> },
+    { path: "/adminsignup", element: <AdminSignUpPage /> },
     { path: "/confirm", element: <ConfirmPage /> },
     { path: "/dashboard", element: <Dashboard /> },
     { path: "/allcourses", element: <AllCourses /> },
