@@ -1,12 +1,15 @@
 import {
-    Monitor, LogOut, Mail, Video, MessageCircle, ShoppingCart, Phone, AlertTriangle, CheckCircle,
-    Clock, ArrowRight, Bell, Users, Lock, Sparkles, BookOpen, UserCheck, TrendingUp, FileText
+    Monitor, LogOut, Mail, Video, MessageCircle, ShoppingCart, Phone, CheckCircle,
+    ArrowRight, Bell, Users, Lock, Sparkles, BookOpen, UserCheck, TrendingUp, FileText
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../context/AuthContext";
+import { useState } from "react";
+import CreateNewCourse from "../components/CreateNewCourse";
 
 export default function InstructorDashboard({ user }) {
     const navigate = useNavigate();
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -296,7 +299,10 @@ export default function InstructorDashboard({ user }) {
                         <div className="bg-white rounded-3xl shadow-sm p-6">
                             <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
                             <div className="space-y-3">
-                                <button className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => setShowCreateModal(true)}
+                                    className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                                >
                                     <BookOpen className="w-5 h-5" />
                                     Create New Course
                                 </button>
@@ -341,6 +347,15 @@ export default function InstructorDashboard({ user }) {
                     </div>
                 </div>
             </main>
+
+            {/* Create Course Modal */}
+            <CreateNewCourse
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSuccess={() => {
+                    // Optional: Add any additional logic after successful course creation
+                }}
+            />
         </div>
     );
 };
