@@ -10,7 +10,7 @@ import DifficultyFilter from "../components/AllCourses/DifficultyFilter";
 import Header from "../components/AllCourses/Header";
 import EmptyState from "../components/AllCourses/EmptyState";
 import ErrorState from "../components/AllCourses/ErrorState";
-import { formatDuration, getCourseMetadata } from "../components/AllCourses/utils";
+import { formatDuration, getCourseMetadata, getCategoryMetadata } from "../components/AllCourses/utils";
 
 export default function AllCourses() {
     const navigate = useNavigate();
@@ -115,8 +115,12 @@ export default function AllCourses() {
                     const catId = course.categoryId || 'uncategorized';
 
                     if (!categoryMap[catId]) {
-                        const categoryData = course.categories ||
-                            (Array.isArray(course.categories) ? course.categories[0] : null);
+                        const categoryData = Array.isArray(course.categories)
+                            ? course.categories[0]
+                            : course.categories || null;
+
+                        // Get category-specific icon and color
+                        const categoryMeta = getCategoryMetadata(course.category_id);
 
                         categoryMap[catId] = {
                             id: catId,
@@ -126,8 +130,8 @@ export default function AllCourses() {
                             courses: [],
                             totalTutorials: 0,
                             completedTutorials: 0,
-                            icon: course.icon,
-                            color: course.color
+                            icon: categoryMeta.icon,
+                            color: categoryMeta.color
                         };
                     }
 
@@ -332,7 +336,7 @@ export default function AllCourses() {
                                     <CourseCard
                                         key={course.id}
                                         course={course}
-                                        onClick={() => handleCourseClick(course)}
+                                        onClick={handleCourseClick}
                                     />
                                 ))}
                             </div>

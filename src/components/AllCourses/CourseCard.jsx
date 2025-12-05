@@ -9,7 +9,7 @@ export default function CourseCard({ course, onClick }) {
 
     return (
         <div
-            onClick={onClick}
+            onClick={() => onClick?.(course)}
             className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer group flex flex-col"
         >
             <div className="flex items-start justify-between mb-4">
@@ -41,7 +41,7 @@ export default function CourseCard({ course, onClick }) {
                 <button 
                     onClick={(e) => {
                         e.stopPropagation();
-                        onClick?.();
+                        onClick?.(course);
                     }}
                     className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 group-hover:gap-3"
                 >
