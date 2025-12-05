@@ -3,15 +3,22 @@ import {
     Clock, ArrowRight, Users, Lock, Sparkles
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
-import { UserAuth } from "../context/AuthContext";
+import { UserAuth, supabase } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import DashboardNavbar from "../components/Navbar";
+import UserCourses from "../components/UserCourses";
 
 export default function Dashboard() {
     const navigate = useNavigate();
     const { session, getUserData } = UserAuth();
     const user = session?.user;
     const [userData, setUserData] = useState(null);
+    const [userProgress, setUserProgress] = useState({
+        completedLessons: 0,
+        totalLessons: 0,
+        streak: 0,
+    });
+    const [loadingProgress, setLoadingProgress] = useState(true);
 
     // Redirect to signin if not authenticated
     useEffect(() => {
@@ -26,61 +33,78 @@ export default function Dashboard() {
         }
     }, [session, navigate]);
 
+    // Fetch user progress stats
+    useEffect(() => {
+        const fetchProgressStats = async () => {
+            if (!session?.user) {
+                setLoadingProgress(false);
+                return;
+            }
+
+            try {
+                const userId = session.user.id;
+
+                // Fetch all tutorials count
+                const { count: totalTutorials, error: tutorialsError } = await supabase
+                    .from("tutorials")
+                    .select("*", { count: "exact", head: true });
+
+                if (tutorialsError) {
+                    console.error("Error fetching tutorials count:", tutorialsError);
+                }
+
+                // Fetch user progress
+                const { data: progressData, error: progressError } = await supabase
+                    .from("user_progress")
+                    .select("completed_at")
+                    .eq("user_id", userId);
+
+                if (progressError) {
+                    console.error("Error fetching user progress:", progressError);
+                }
+
+                // Calculate completed tutorials
+                const completedTutorials = (progressData || []).filter(
+                    p => p.completed_at !== null
+                ).length;
+
+                // Calculate streak (simplified - you can enhance this later)
+                // For now, we'll use a simple calculation based on recent activity
+                const recentProgress = (progressData || []).filter(p => {
+                    if (!p.completed_at) return false;
+                    const completedDate = new Date(p.completed_at);
+                    const daysSince = (Date.now() - completedDate.getTime()) / (1000 * 60 * 60 * 24);
+                    return daysSince <= 7; // Active in last 7 days
+                });
+                const streak = Math.min(recentProgress.length, 7); // Cap at 7 for now
+
+                setUserProgress({
+                    completedLessons: completedTutorials,
+                    totalLessons: totalTutorials || 0,
+                    streak: streak || 0,
+                });
+            } catch (error) {
+                console.error("Unexpected error fetching progress stats:", error);
+            } finally {
+                setLoadingProgress(false);
+            }
+        };
+
+        if (session) {
+            fetchProgressStats();
+        }
+    }, [session]);
+
     // Show loading or nothing while checking auth
     if (session === null) {
         return null;
     }
 
-    // Mock data for progress and activities
-    const userProgress = {
-        completedLessons: 8,
-        totalLessons: 24,
-        streak: 5,
-    };
-    
     // Calculation for progress bar
-    const progressPercentage = Math.round(
-        (userProgress.completedLessons / userProgress.totalLessons) * 100
-    );
+    const progressPercentage = userProgress.totalLessons > 0
+        ? Math.round((userProgress.completedLessons / userProgress.totalLessons) * 100)
+        : 0;
 
-    const tutorials = [
-        {
-            id: 1,
-            title: "Email Basics",
-            icon: Mail,
-            description: "Learn to send, receive, and organize emails",
-            progress: 60,
-            lessons: 8,
-            color: "blue"
-        },
-        {
-            id: 2,
-            title: "Video Calls",
-            icon: Video,
-            description: "Master Zoom, Skype, and FaceTime",
-            progress: 30,
-            lessons: 6,
-            color: "purple"
-        },
-        {
-            id: 3,
-            title: "Social Media",
-            icon: MessageCircle,
-            description: "Connect with family on Facebook & Instagram",
-            progress: 15,
-            lessons: 10,
-            color: "pink"
-        },
-        {
-            id: 4,
-            title: "Online Shopping",
-            icon: ShoppingCart,
-            description: "Shop safely on Amazon, eBay, and more",
-            progress: 0,
-            lessons: 7,
-            color: "emerald"
-        }
-    ];
 
     const recentActivities = [
         {
@@ -170,61 +194,7 @@ export default function Dashboard() {
                                     </button>
                                 </Link>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {tutorials.map((tutorial) => {
-                                    const Icon = tutorial.icon;
-                                    const hasProgress = tutorial.progress > 0;
-                                    return (
-                                        <div
-                                            key={tutorial.id}
-                                            className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer group flex flex-col"
-                                        >
-                                            <div className="flex items-start justify-between mb-4">
-                                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${tutorial.color === 'blue' ? 'bg-blue-100' :
-                                                    tutorial.color === 'purple' ? 'bg-purple-100' :
-                                                        tutorial.color === 'pink' ? 'bg-pink-100' :
-                                                            'bg-emerald-100'
-                                                    }`}>
-                                                    <Icon className={`w-7 h-7 ${tutorial.color === 'blue' ? 'text-blue-600' :
-                                                        tutorial.color === 'purple' ? 'text-purple-600' :
-                                                            tutorial.color === 'pink' ? 'text-pink-600' :
-                                                                'text-emerald-600'
-                                                        }`} />
-                                                </div>
-                                                {hasProgress && (
-                                                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
-                                                        In Progress
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <h3 className="text-xl font-bold text-gray-900 mb-2">{tutorial.title}</h3>
-                                            <p className="text-gray-600 text-sm mb-4 leading-relaxed">{tutorial.description}</p>
-
-                                            <div className="mb-4 mt-auto">
-                                                <div className="flex justify-between text-xs font-semibold mb-2">
-                                                    <span className="text-gray-600">{tutorial.lessons} lessons</span>
-                                                    <span className="text-gray-900">{tutorial.progress}% Complete</span>
-                                                </div>
-                                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full ${tutorial.color === 'blue' ? 'bg-blue-500' :
-                                                            tutorial.color === 'purple' ? 'bg-purple-500' :
-                                                                tutorial.color === 'pink' ? 'bg-pink-500' :
-                                                                    'bg-emerald-500'
-                                                            }`}
-                                                        style={{ width: `${tutorial.progress}%` }}
-                                                    ></div>
-                                                </div>
-                                            </div>
-
-                                            <button className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 group-hover:gap-3">
-                                                {hasProgress ? 'Continue Learning' : 'Start Course'}
-                                                <ArrowRight className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            <UserCourses />
                         </div>
 
                         {/* Recent Activity */}
