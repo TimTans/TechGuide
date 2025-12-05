@@ -233,7 +233,12 @@ export default function AllCourses() {
         setSelectedCategory(category);
     };
 
-    const handleCourseClick = (course) => {
+    const handleCourseClick = async (course) => {
+        // Start or update course progress before navigating
+        if (session?.user) {
+            const { startOrUpdateCourse } = await import("../utils/tutorialProgress");
+            await startOrUpdateCourse(session.user.id, course.id);
+        }
         // Navigate to course detail page or tutorial
         navigate(`/tutorials/${course.id}`);
     };

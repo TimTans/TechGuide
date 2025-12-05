@@ -123,7 +123,12 @@ export default function UserCourses() {
         }
     }, [session]);
 
-    const handleCourseClick = (course) => {
+    const handleCourseClick = async (course) => {
+        // Start or update course progress before navigating
+        if (session?.user) {
+            const { startOrUpdateCourse } = await import("../utils/tutorialProgress");
+            await startOrUpdateCourse(session.user.id, course.id);
+        }
         navigate(`/tutorials/${course.id}`);
     };
 

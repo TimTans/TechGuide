@@ -14,6 +14,7 @@ import Safety from "./pages/safety";
 import InstructorDashboard from "./pages/InstructorDashboard";
 import Support from "./pages/SupportPage";
 import AdminSignUpPage from "./pages/adminsignup";
+import TutorialViewer from "./pages/TutorialViewer";
 import App from "./App";
 
 
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
     // { path: "/support", element: <Support /> },
     { path: "/instructor", element: <InstructorDashboard /> },
     { path: "/tutorials", element: <Tutorials /> },
+    { path: "/tutorials/:id", element: <TutorialViewer /> },
     { path: "/safety", element: <Safety /> },
     { path: "/support", element: <Support /> }
 
