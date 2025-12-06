@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Search, Mail, MessageSquare, HelpCircle, ChevronDown, ChevronUp, Home } from 'lucide-react';
+import { Search, Mail, MessageSquare, HelpCircle, ChevronDown, ChevronUp, Home, Monitor, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import DashboardNavbar from '../components/Navbar';
 
 const faqData = [
   {
@@ -19,6 +18,7 @@ const faqData = [
 ];
 
 const SupportPage = () => {
+  const [showPhoneNumber, setShowPhoneNumber] = useState(false);
   const [activeFaq, setActiveFaq] = useState(null);
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
 
@@ -41,15 +41,53 @@ const SupportPage = () => {
 
   return (
     <div className="min-h-screen bg-linear-to-b from-orange-50 via-orange-50 to-white">
-      <DashboardNavbar />
+      {/* Header - Matching Homepage */}
+      <header>
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-5 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <Monitor className="w-8 h-8 text-gray-900" />
+            <span className="text-xl font-bold text-gray-900">TECHGUIDE</span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+            <Link to="/tutorials" className="text-sm font-semibold text-gray-700 hover:text-gray-900">TUTORIALS</Link>
+            <Link to="/safety" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SAFETY</Link>
+            <Link to="/support" className="text-sm font-semibold text-gray-700 hover:text-gray-900">SUPPORT</Link>
+            <Link to="/about" className="text-sm font-semibold text-gray-700 hover:text-gray-900">ABOUT</Link>
+          </nav>
+          <div className={`flex items-center transition-all duration-300 ${showPhoneNumber ? 'gap-2' : 'gap-0'}`}>
+            <div className="hidden md:flex items-center overflow-hidden">
+              <button
+                onClick={() => setShowPhoneNumber(!showPhoneNumber)}
+                className={`p-2 rounded-full transition-all duration-300 ${showPhoneNumber
+                  ? 'bg-emerald-100 text-emerald-600'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900'
+                  }`}
+              >
+                <Phone className="w-5 h-5" />
+              </button>
+              <div
+                className={`flex items-center gap-2 bg-linear-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2 rounded-full shadow-lg transition-all duration-500 ease-out ${showPhoneNumber
+                  ? 'max-w-xs opacity-100 ml-1'
+                  : 'max-w-0 opacity-0 ml-0'
+                  }`}
+              >
+                <span className="text-sm font-bold whitespace-nowrap">(123) 456-7890</span>
+              </div>
+            </div>
+            <Link to="/signup" className={`bg-gray-900 text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-gray-800 transition-all duration-300 ${showPhoneNumber ? 'ml-0' : '-ml-2'}`}>
+              GET STARTED
+            </Link>
+          </div>
+        </div>
+      </header>
       
       {/* Use the main content container from the Safety component */}
       <main className="max-w-7xl mx-auto px-6 lg:px-8 py-12 pb-20">
         
         {/* Breadcrumb structure and styling matching other pages */}
         <div className="flex items-center gap-4 mb-8">
-            <Link to="/dashboard" className="text-sm font-semibold text-gray-500 hover:text-gray-900 flex items-center gap-1">
-                <Home className="w-4 h-4" /> Dashboard
+            <Link to="/" className="text-sm font-semibold text-gray-500 hover:text-gray-900 flex items-center gap-1">
+                <Home className="w-4 h-4" /> Home
             </Link>
             <span className="text-gray-400">/</span>
             {/* Using green text for the active page to match the support theme */}

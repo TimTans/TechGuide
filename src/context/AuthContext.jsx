@@ -51,6 +51,91 @@ export const AuthContextProvider = ({ children }) => {
         return { success: true, data }
     }
 
+    // Admin signup function that bypasses email verification via Edge Function
+    const signUpNewUserAsAdmin = async (email, password, firstName, lastName, userRole) => {
+        try {
+            // Call the Edge Function (Supabase automatically handles authorization)
+            const { data, error } = await supabase.functions.invoke('quick-processor', {
+                body: {
+                    email,
+                    password,
+                    firstName,
+                    lastName,
+                    userRole
+                }
+            });
+
+            // Check for function invocation errors (network, function not found, etc.)
+            if (error) {
+                console.error('Error calling Edge Function:', error);
+
+                // Try to extract error message from response
+                let errorMessage = 'Failed to create user';
+
+                // Check if error has context with response data
+                if (error.context?.body) {
+                    try {
+                        const errorBody = typeof error.context.body === 'string'
+                            ? JSON.parse(error.context.body)
+                            : error.context.body;
+                        if (errorBody.error) {
+                            errorMessage = errorBody.error;
+                        }
+                    } catch (e) {
+                        // If parsing fails, use default message
+                    }
+                }
+
+                // Handle specific status codes
+                if (error.status === 404) {
+                    errorMessage = 'Edge Function not found. Please make sure the function is deployed.';
+                } else if (error.status === 409) {
+                    errorMessage = errorMessage || 'This email is already registered';
+                } else if (error.status === 401 || error.status === 403) {
+                    errorMessage = 'Authorization failed. Please check your Supabase configuration.';
+                } else if (error.status === 500) {
+                    errorMessage = errorMessage || 'Server error. Please try again later.';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+
+                return {
+                    success: false,
+                    error: { message: errorMessage }
+                };
+            }
+
+            // Check for errors in the function response
+            if (data?.error) {
+                console.error('Edge Function returned error:', data.error);
+                return {
+                    success: false,
+                    error: { message: data.error }
+                };
+            }
+
+            // Success
+            if (data?.success) {
+                return { success: true, data: data.data };
+            }
+
+            // Unexpected response format
+            console.error('Unexpected response format:', data);
+            return {
+                success: false,
+                error: { message: 'Unexpected response from server' }
+            };
+        } catch (error) {
+            console.error('Error in admin signup:', error);
+            return {
+                success: false,
+                error: {
+                    message: error.message || 'An unexpected error occurred. Please check the browser console for details.'
+                }
+            };
+        }
+    }
+
 
 
     const signIn = async (email, password) => {
@@ -135,7 +220,7 @@ export const AuthContextProvider = ({ children }) => {
 
 
     return (
-        <AuthContext.Provider value={{ session, signUpNewUser, signOut, signIn, getUserData }}>
+        <AuthContext.Provider value={{ session, signUpNewUser, signUpNewUserAsAdmin, signOut, signIn, getUserData }}>
             {children}
         </AuthContext.Provider>
     )
