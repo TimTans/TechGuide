@@ -203,7 +203,7 @@ export const AuthContextProvider = ({ children }) => {
 
         const { data, error } = await supabase
             .from("users")
-            .select("first_name, last_name, email")
+            .select("first_name, last_name, email, user_role")
             .eq("user_id", user.id)
             .single();
 

@@ -1,17 +1,21 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Pencil } from "lucide-react";
 import { getColorClasses, getDifficultyBadgeClasses } from "./utils";
+import CourseEditingModal from "../CourseEditingModal";
+import { UserAuth } from "../../context/AuthContext";
+import { useState } from "react";
 
-export default function CourseCard({ course, onClick }) {
+export default function CourseCard({ course, onClick, onEdit, role}) {
     const Icon = course.icon;
     const hasProgress = course.isCompleted || course.progress;
     const colorClasses = getColorClasses(course.color);
     const difficulty = course.difficulty || course.difficulty_level || 'Beginner';
+    const { getUserData } = UserAuth()
 
     return (
         <div
             onClick={() => onClick?.(course)}
             className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer group flex flex-col"
-        >
+        >   
             <div className="flex items-start justify-between mb-4">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorClasses.bg}`}>
                     <Icon className={`w-7 h-7 ${colorClasses.text}`} />
@@ -20,6 +24,17 @@ export default function CourseCard({ course, onClick }) {
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${getDifficultyBadgeClasses(difficulty)}`}>
                         {difficulty}
                     </span>
+                    { role == 'instructor' &&
+                    <button className='hover:bg-black transition-all'
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            onEdit(course);
+                        }}
+                    >
+                        <Pencil className="w-3/4 m-auto"></Pencil>
+                    </button>
+                    }
+
                     {hasProgress && (
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${course.isCompleted
                                 ? 'bg-emerald-100 text-emerald-700'
@@ -49,6 +64,10 @@ export default function CourseCard({ course, onClick }) {
                     <ChevronRight className="w-5 h-5" />
                 </button>
             </div>
+
+            
+
+
         </div>
     );
 }
