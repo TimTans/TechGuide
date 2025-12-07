@@ -10,7 +10,7 @@ import UserProfile from "./pages/userprofile";
 import About from "./pages/about";
 import Tutorials from "./pages/tutorials";
 import Safety from "./pages/safety";
-// import Support from "./pages/support";
+
 import InstructorDashboard from "./pages/InstructorDashboard";
 import Support from "./pages/SupportPage";
 import AdminSignUpPage from "./pages/adminsignup";
