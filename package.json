@@ -13,7 +13,9 @@
     "test:coverage": "vitest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "report:build": "node buildreports/collect_logs.mjs"
+    "report:build": "node buildreports/collect_logs.mjs",
+    "status:report": "node buildreports/system_status_log.mjs"
+
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.74.0",
