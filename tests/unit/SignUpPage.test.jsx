@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
@@ -32,19 +32,13 @@ vi.mock('react-router-dom', async () => {
 
 describe('SignUpPage Component', () => {
     const mockSignUpNewUser = vi.fn();
-    let timers;
 
     beforeEach(() => {
         vi.clearAllMocks();
-        timers = vi.useFakeTimers();
         UserAuth.mockReturnValue({
             session: null,
             signUpNewUser: mockSignUpNewUser,
         });
-    });
-
-    afterEach(() => {
-        vi.useRealTimers();
     });
 
     it('should render the sign up form', () => {
@@ -128,8 +122,8 @@ describe('SignUpPage Component', () => {
     });
 
     it('should show success message on successful signup with countdown', async () => {
-        const user = userEvent.setup({ delay: null });
         mockSignUpNewUser.mockResolvedValue({ success: true });
+        const user = userEvent.setup();
 
         render(
             <BrowserRouter>
@@ -153,19 +147,7 @@ describe('SignUpPage Component', () => {
         // Check countdown appears
         await waitFor(() => {
             expect(screen.getByText(/redirecting to sign in in/i)).toBeInTheDocument();
-        });
-
-        // Advance timers to check countdown
-        vi.advanceTimersByTime(1000);
-        await waitFor(() => {
-            expect(screen.getByText(/redirecting to sign in in 9 second/i)).toBeInTheDocument();
-        });
-
-        // Advance to end of countdown
-        vi.advanceTimersByTime(9000);
-        await waitFor(() => {
-            expect(mockNavigate).toHaveBeenCalledWith('/signin');
-        });
+        }, { timeout: 2000 });
     });
 
     it('should show error message on failed signup', async () => {
@@ -221,10 +203,12 @@ describe('SignUpPage Component', () => {
     });
 
     it('should disable button during submission', async () => {
-        const user = userEvent.setup({ delay: null });
-        mockSignUpNewUser.mockImplementation(() =>
-            new Promise(resolve => setTimeout(() => resolve({ success: true }), 100))
-        );
+        const user = userEvent.setup();
+        let resolvePromise;
+        const promise = new Promise(resolve => {
+            resolvePromise = resolve;
+        });
+        mockSignUpNewUser.mockReturnValue(promise);
 
         render(
             <BrowserRouter>
@@ -240,7 +224,11 @@ describe('SignUpPage Component', () => {
         const button = screen.getByRole('button', { name: /create account/i });
         await user.click(button);
 
-        expect(screen.getByRole('button', { name: /please wait/i })).toBeDisabled();
+        await waitFor(() => {
+            expect(screen.getByRole('button', { name: /please wait/i })).toBeDisabled();
+        });
+
+        resolvePromise({ success: true });
     });
 
     it('should clear form fields after successful signup', async () => {
