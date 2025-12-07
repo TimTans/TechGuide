@@ -11,10 +11,11 @@ import Header from "../components/AllCourses/Header";
 import EmptyState from "../components/AllCourses/EmptyState";
 import ErrorState from "../components/AllCourses/ErrorState";
 import { formatDuration, getCourseMetadata, getCategoryMetadata } from "../components/AllCourses/utils";
+import CourseEditingModal from "../components/CourseEditingModal";
 
 export default function AllCourses() {
     const navigate = useNavigate();
-    const { session } = UserAuth();
+    const { session, getUserData } = UserAuth();
     const [allCourses, setAllCourses] = useState([]);
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
@@ -23,6 +24,9 @@ export default function AllCourses() {
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [difficultyFilter, setDifficultyFilter] = useState("all");
+    const [userRole, setUserRole] = useState('')
+    const [toEdit, setToEdit] = useState({})
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Redirect to signin if not authenticated
     useEffect(() => {
@@ -30,6 +34,11 @@ export default function AllCourses() {
             navigate("/signin");
         }
     }, [session, navigate]);
+
+    getUserData().then((value) => {
+        setUserRole(value.data.user_role);
+    })
+
 
     // Fetch tutorials and user progress from Supabase
     useEffect(() => {
@@ -243,6 +252,20 @@ export default function AllCourses() {
         setDifficultyFilter("all");
     };
 
+    const handleCourseEdit = (course) => {
+        console.log(course)
+        setToEdit(course);
+        setIsModalOpen(true);
+    }
+    const handleOnCourseEditSubmit = async (newName) => {
+        
+        await supabase
+        .from('tutorials')
+        .update({title: newName})
+        .eq('tutorial_id', toEdit.tutorial_id)
+        setIsModalOpen(false);
+    }
+
     // Show loading or nothing while checking auth
     if (session === null) {
         return null;
@@ -337,10 +360,15 @@ export default function AllCourses() {
                                         key={course.id}
                                         course={course}
                                         onClick={handleCourseClick}
+                                        onEdit = {handleCourseEdit}
+                                        role = {userRole}
                                     />
                                 ))}
                             </div>
                         )}
+
+
+                        {userRole == 'instructor' && <CourseEditingModal isOpen={isModalOpen} onClose = {()=>setIsModalOpen(false)} courseToEdit={toEdit} onSubmit = {handleOnCourseEditSubmit}/>}
                     </>
                 )}
             </main>
