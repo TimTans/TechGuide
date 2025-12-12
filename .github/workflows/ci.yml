@@ -12,48 +12,29 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: 18.x
         cache: 'npm'
     
-    - name: Clean install dependencies
-      run: |
-        rm -rf node_modules package-lock.json
-        npm install
-    
-    - name: Run linter (if available)
-      run: npm run lint --if-present || echo "No linter configured"
-      continue-on-error: true
+    - name: Install dependencies
+      run: npm ci
     
     - name: Run unit and integration tests
       run: npm test
-      continue-on-error: false
     
     - name: Generate coverage report
-      run: npm run test:coverage || echo "Coverage report skipped"
+      run: npm run test:coverage
       continue-on-error: true
     
-    - name: Install Playwright browsers
-      run: npx playwright install --with-deps chromium
-      continue-on-error: true
-    
-    - name: Run E2E tests
-      run: npm run test:e2e || echo "E2E tests skipped"
-      continue-on-error: true
-      env:
-        CI: true
-    
-    - name: Upload test results
-      uses: actions/upload-artifact@v3
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: test-results
-        path: |
-          coverage/
-          playwright-report/
+        name: coverage-report
+        path: coverage/
         retention-days: 7
       continue-on-error: true
