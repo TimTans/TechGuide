@@ -1,11 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Dashboard from '@/pages/dashboard.jsx';
-import { UserAuth } from '@/context/AuthContext';
 
+// Mock AuthContext with proper structure
 vi.mock('@/context/AuthContext', () => ({
     UserAuth: vi.fn(),
+    supabase: {
+        from: vi.fn(() => ({
+            select: vi.fn(() => ({
+                eq: vi.fn(() => Promise.resolve({
+                    data: [],
+                    error: null
+                }))
+            }))
+        }))
+    }
+}));
+
+// Mock UserCourses to avoid nested complexity
+vi.mock('@/components/UserCourses', () => ({
+    default: () => <div data-testid="user-courses">User Courses Component</div>
 }));
 
 const mockNavigate = vi.fn();
@@ -18,16 +33,15 @@ vi.mock('react-router-dom', async () => {
 });
 
 describe('Dashboard Component', () => {
-    const mockGetUserData = vi.fn();
-
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    it('should call navigate to signin when session is null', () => {
+    it('should call navigate to signin when session is null', async () => {
+        const { UserAuth } = await import('@/context/AuthContext');
         UserAuth.mockReturnValue({
             session: null,
-            getUserData: mockGetUserData,
+            getUserData: vi.fn(),
         });
 
         render(
@@ -36,13 +50,16 @@ describe('Dashboard Component', () => {
             </BrowserRouter>
         );
 
-        expect(mockNavigate).toHaveBeenCalledWith('/signin');
+        await waitFor(() => {
+            expect(mockNavigate).toHaveBeenCalledWith('/signin');
+        });
     });
 
-    it('should render nothing when not authenticated', () => {
+    it('should render nothing when not authenticated', async () => {
+        const { UserAuth } = await import('@/context/AuthContext');
         UserAuth.mockReturnValue({
             session: null,
-            getUserData: mockGetUserData,
+            getUserData: vi.fn(),
         });
 
         const { container } = render(
@@ -55,11 +72,12 @@ describe('Dashboard Component', () => {
     });
 
     it('should call getUserData when authenticated', async () => {
-        mockGetUserData.mockResolvedValue({
+        const mockGetUserData = vi.fn().mockResolvedValue({
             success: true,
             data: { name: 'Test User' }
         });
 
+        const { UserAuth } = await import('@/context/AuthContext');
         UserAuth.mockReturnValue({
             session: { user: { id: '123', email: 'test@example.com' } },
             getUserData: mockGetUserData,
@@ -71,15 +89,18 @@ describe('Dashboard Component', () => {
             </BrowserRouter>
         );
 
-        expect(mockGetUserData).toHaveBeenCalled();
+        await waitFor(() => {
+            expect(mockGetUserData).toHaveBeenCalled();
+        });
     });
 
-    it('should render dashboard when authenticated', () => {
-        mockGetUserData.mockResolvedValue({
+    it('should render dashboard when authenticated', async () => {
+        const mockGetUserData = vi.fn().mockResolvedValue({
             success: true,
             data: {}
         });
 
+        const { UserAuth } = await import('@/context/AuthContext');
         UserAuth.mockReturnValue({
             session: { user: { id: '123', email: 'test@example.com' } },
             getUserData: mockGetUserData,
@@ -91,7 +112,8 @@ describe('Dashboard Component', () => {
             </BrowserRouter>
         );
 
-        // Dashboard should render something (not null)
-        expect(mockNavigate).not.toHaveBeenCalledWith('/signin');
+        await waitFor(() => {
+            expect(mockNavigate).not.toHaveBeenCalledWith('/signin');
+        });
     });
 });

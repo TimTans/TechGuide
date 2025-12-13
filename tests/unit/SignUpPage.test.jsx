@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
+import { act } from 'react';
 import SignUpPage from '@/pages/SignUpPage';
-import { UserAuth } from '@/context/AuthContext';
 
 vi.mock('@/context/AuthContext', () => ({
     UserAuth: vi.fn(),
@@ -33,8 +33,9 @@ vi.mock('react-router-dom', async () => {
 describe('SignUpPage Component', () => {
     const mockSignUpNewUser = vi.fn();
 
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks();
+        const { UserAuth } = await import('@/context/AuthContext');
         UserAuth.mockReturnValue({
             session: null,
             signUpNewUser: mockSignUpNewUser,
@@ -81,7 +82,8 @@ describe('SignUpPage Component', () => {
         expect(signInLinks[0]).toHaveAttribute('href', '/signin');
     });
 
-    it('should redirect to dashboard if already logged in', () => {
+    it('should redirect to dashboard if already logged in', async () => {
+        const { UserAuth } = await import('@/context/AuthContext');
         UserAuth.mockReturnValue({
             session: { user: { id: '123' } },
             signUpNewUser: mockSignUpNewUser,
@@ -131,12 +133,13 @@ describe('SignUpPage Component', () => {
             </BrowserRouter>
         );
 
-        await user.type(screen.getByPlaceholderText('Enter your first name'), 'John');
-        await user.type(screen.getByPlaceholderText('Enter your last name'), 'Doe');
-        await user.type(screen.getByPlaceholderText('Enter your email'), 'john@example.com');
-        await user.type(screen.getByPlaceholderText('Create a password (min 6 characters)'), 'password123');
-
-        await user.click(screen.getByRole('button', { name: /create account/i }));
+        await act(async () => {
+            await user.type(screen.getByPlaceholderText('Enter your first name'), 'John');
+            await user.type(screen.getByPlaceholderText('Enter your last name'), 'Doe');
+            await user.type(screen.getByPlaceholderText('Enter your email'), 'john@example.com');
+            await user.type(screen.getByPlaceholderText('Create a password (min 6 characters)'), 'password123');
+            await user.click(screen.getByRole('button', { name: /create account/i }));
+        });
 
         await waitFor(() => {
             expect(screen.getByText(/account created successfully/i)).toBeInTheDocument();
@@ -144,14 +147,13 @@ describe('SignUpPage Component', () => {
             expect(screen.getByText(/we've sent a confirmation link/i)).toBeInTheDocument();
         });
 
-        // Check countdown appears
         await waitFor(() => {
             expect(screen.getByText(/redirecting to sign in in/i)).toBeInTheDocument();
         }, { timeout: 2000 });
     });
 
     it('should show error message on failed signup', async () => {
-        const user = userEvent.setup({ delay: null });
+        const user = userEvent.setup();
         mockSignUpNewUser.mockResolvedValue({
             success: false,
             error: { message: 'Email already exists' }
@@ -163,12 +165,13 @@ describe('SignUpPage Component', () => {
             </BrowserRouter>
         );
 
-        await user.type(screen.getByPlaceholderText('Enter your first name'), 'John');
-        await user.type(screen.getByPlaceholderText('Enter your last name'), 'Doe');
-        await user.type(screen.getByPlaceholderText('Enter your email'), 'existing@example.com');
-        await user.type(screen.getByPlaceholderText('Create a password (min 6 characters)'), 'password123');
-
-        await user.click(screen.getByRole('button', { name: /create account/i }));
+        await act(async () => {
+            await user.type(screen.getByPlaceholderText('Enter your first name'), 'John');
+            await user.type(screen.getByPlaceholderText('Enter your last name'), 'Doe');
+            await user.type(screen.getByPlaceholderText('Enter your email'), 'existing@example.com');
+            await user.type(screen.getByPlaceholderText('Create a password (min 6 characters)'), 'password123');
+            await user.click(screen.getByRole('button', { name: /create account/i }));
+        });
 
         await waitFor(() => {
             expect(screen.getByText('Email already exists')).toBeInTheDocument();
@@ -176,7 +179,7 @@ describe('SignUpPage Component', () => {
     });
 
     it('should show sign in link in error message when email already registered', async () => {
-        const user = userEvent.setup({ delay: null });
+        const user = userEvent.setup();
         mockSignUpNewUser.mockResolvedValue({
             success: false,
             error: { message: 'User is already registered' }
@@ -188,12 +191,13 @@ describe('SignUpPage Component', () => {
             </BrowserRouter>
         );
 
-        await user.type(screen.getByPlaceholderText('Enter your first name'), 'John');
-        await user.type(screen.getByPlaceholderText('Enter your last name'), 'Doe');
-        await user.type(screen.getByPlaceholderText('Enter your email'), 'existing@example.com');
-        await user.type(screen.getByPlaceholderText('Create a password (min 6 characters)'), 'password123');
-
-        await user.click(screen.getByRole('button', { name: /create account/i }));
+        await act(async () => {
+            await user.type(screen.getByPlaceholderText('Enter your first name'), 'John');
+            await user.type(screen.getByPlaceholderText('Enter your last name'), 'Doe');
+            await user.type(screen.getByPlaceholderText('Enter your email'), 'existing@example.com');
+            await user.type(screen.getByPlaceholderText('Create a password (min 6 characters)'), 'password123');
+            await user.click(screen.getByRole('button', { name: /create account/i }));
+        });
 
         await waitFor(() => {
             expect(screen.getByText(/click here to sign in/i)).toBeInTheDocument();
@@ -216,23 +220,30 @@ describe('SignUpPage Component', () => {
             </BrowserRouter>
         );
 
-        await user.type(screen.getByPlaceholderText('Enter your first name'), 'John');
-        await user.type(screen.getByPlaceholderText('Enter your last name'), 'Doe');
-        await user.type(screen.getByPlaceholderText('Enter your email'), 'john@example.com');
-        await user.type(screen.getByPlaceholderText('Create a password (min 6 characters)'), 'password123');
+        await act(async () => {
+            await user.type(screen.getByPlaceholderText('Enter your first name'), 'John');
+            await user.type(screen.getByPlaceholderText('Enter your last name'), 'Doe');
+            await user.type(screen.getByPlaceholderText('Enter your email'), 'john@example.com');
+            await user.type(screen.getByPlaceholderText('Create a password (min 6 characters)'), 'password123');
+        });
 
         const button = screen.getByRole('button', { name: /create account/i });
-        await user.click(button);
+        
+        await act(async () => {
+            await user.click(button);
+        });
 
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /please wait/i })).toBeDisabled();
         });
 
-        resolvePromise({ success: true });
+        await act(async () => {
+            resolvePromise({ success: true });
+        });
     });
 
     it('should clear form fields after successful signup', async () => {
-        const user = userEvent.setup({ delay: null });
+        const user = userEvent.setup();
         mockSignUpNewUser.mockResolvedValue({ success: true });
 
         render(
@@ -246,12 +257,13 @@ describe('SignUpPage Component', () => {
         const emailInput = screen.getByPlaceholderText('Enter your email');
         const passwordInput = screen.getByPlaceholderText('Create a password (min 6 characters)');
 
-        await user.type(firstNameInput, 'John');
-        await user.type(lastNameInput, 'Doe');
-        await user.type(emailInput, 'john@example.com');
-        await user.type(passwordInput, 'password123');
-
-        await user.click(screen.getByRole('button', { name: /create account/i }));
+        await act(async () => {
+            await user.type(firstNameInput, 'John');
+            await user.type(lastNameInput, 'Doe');
+            await user.type(emailInput, 'john@example.com');
+            await user.type(passwordInput, 'password123');
+            await user.click(screen.getByRole('button', { name: /create account/i }));
+        });
 
         await waitFor(() => {
             expect(firstNameInput).toHaveValue('');
@@ -273,7 +285,7 @@ describe('SignUpPage Component', () => {
     });
 
     it('should open admin modal when admin button is clicked', async () => {
-        const user = userEvent.setup({ delay: null });
+        const user = userEvent.setup();
 
         render(
             <BrowserRouter>
@@ -282,13 +294,16 @@ describe('SignUpPage Component', () => {
         );
 
         const adminButton = screen.getByRole('button', { name: /admin access/i });
-        await user.click(adminButton);
+        
+        await act(async () => {
+            await user.click(adminButton);
+        });
 
         expect(screen.getByTestId('admin-modal')).toBeInTheDocument();
     });
 
     it('should call signUpNewUser with correct parameters', async () => {
-        const user = userEvent.setup({ delay: null });
+        const user = userEvent.setup();
         mockSignUpNewUser.mockResolvedValue({ success: true });
 
         render(
@@ -297,12 +312,13 @@ describe('SignUpPage Component', () => {
             </BrowserRouter>
         );
 
-        await user.type(screen.getByPlaceholderText('Enter your first name'), 'John');
-        await user.type(screen.getByPlaceholderText('Enter your last name'), 'Doe');
-        await user.type(screen.getByPlaceholderText('Enter your email'), 'john@example.com');
-        await user.type(screen.getByPlaceholderText('Create a password (min 6 characters)'), 'password123');
-
-        await user.click(screen.getByRole('button', { name: /create account/i }));
+        await act(async () => {
+            await user.type(screen.getByPlaceholderText('Enter your first name'), 'John');
+            await user.type(screen.getByPlaceholderText('Enter your last name'), 'Doe');
+            await user.type(screen.getByPlaceholderText('Enter your email'), 'john@example.com');
+            await user.type(screen.getByPlaceholderText('Create a password (min 6 characters)'), 'password123');
+            await user.click(screen.getByRole('button', { name: /create account/i }));
+        });
 
         await waitFor(() => {
             expect(mockSignUpNewUser).toHaveBeenCalledWith(
