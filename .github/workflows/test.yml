@@ -21,15 +21,16 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
-      # IMPORTANT: must be set before npm install
+      # Must be set before install
       - name: Disable Rollup native bindings
         run: echo "ROLLUP_SKIP_NATIVE=true" >> $GITHUB_ENV
 
       - name: Clean npm cache
         run: npm cache clean --force
 
+      # 🚀 KEY FIX: npm install instead of npm ci
       - name: Install dependencies
-        run: npm ci --include=optional
+        run: npm install
 
       - name: Run unit and integration tests
         run: npm test -- --run
