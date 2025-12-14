@@ -3,7 +3,7 @@ import {
     Target, Star, CheckCircle, Edit, Camera, Sparkles, Trophy,
     Activity, BarChart3
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserAuth, supabase } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
@@ -26,15 +26,20 @@ export default function UserProfile() {
     const [learningStats, setLearningStats] = useState([]);
     const [weeklyActivity, setWeeklyActivity] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showRankPopup, setShowRankPopup] = useState(false);
+    const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+    const rankButtonRef = useRef(null);
+
+    // Redirect to signin if not authenticated
+    useEffect(() => {
+        if (session === null) {
+            navigate("/signin");
+        }
+    }, [session, navigate]);
 
     // Fetch user data and profile stats
     useEffect(() => {
         const fetchUserProfile = async () => {
-            if (session === null) {
-                navigate("/signin");
-                return;
-            }
-
             if (!session?.user) return;
 
             try {
@@ -408,9 +413,182 @@ export default function UserProfile() {
                                 </div>
 
                                 {/* Rank Badge */}
-                                <div className="inline-flex items-center gap-2 px-5 py-2 bg-linear-to-r from-gray-700 to-gray-900 text-white rounded-full font-bold text-sm shadow-lg">
-                                    <Trophy className="w-5 h-5" />
-                                    {profileStats.rank}
+                                <div className="relative">
+                                    <button
+                                        ref={rankButtonRef}
+                                        onClick={() => {
+                                            if (rankButtonRef.current) {
+                                                const rect = rankButtonRef.current.getBoundingClientRect();
+                                                const popupWidth = 320; // min-w-[320px]
+                                                const popupHeight = 400; // estimated height
+                                                const viewportWidth = window.innerWidth;
+                                                const viewportHeight = window.innerHeight;
+
+                                                // Calculate left position (prevent overflow on right side)
+                                                let left = rect.left + window.scrollX;
+                                                if (left + popupWidth > viewportWidth) {
+                                                    left = viewportWidth - popupWidth - 16; // 16px padding from edge
+                                                }
+
+                                                // Calculate top position (prevent overflow on bottom)
+                                                let top = rect.bottom + window.scrollY + 8;
+                                                if (top + popupHeight > window.scrollY + viewportHeight) {
+                                                    // If it would overflow bottom, position above button instead
+                                                    top = rect.top + window.scrollY - popupHeight - 8;
+                                                }
+
+                                                setPopupPosition({ top, left });
+                                            }
+                                            setShowRankPopup(!showRankPopup);
+                                        }}
+                                        className="inline-flex items-center gap-2 px-5 py-2 bg-linear-to-r from-gray-700 to-gray-900 text-white rounded-full font-bold text-sm shadow-lg hover:from-gray-600 hover:to-gray-800 transition-all cursor-pointer"
+                                    >
+                                        <Trophy className="w-5 h-5" />
+                                        {profileStats.rank}
+                                    </button>
+
+                                    {/* Rank Tier Popup */}
+                                    {showRankPopup && (
+                                        <>
+                                            <div
+                                                className="fixed inset-0 z-40"
+                                                onClick={() => setShowRankPopup(false)}
+                                            ></div>
+                                            <div
+                                                className="fixed z-50 bg-white rounded-2xl shadow-2xl p-6 min-w-[320px] border border-gray-200"
+                                                style={{
+                                                    top: `${popupPosition.top}px`,
+                                                    left: `${popupPosition.left}px`
+                                                }}
+                                            >
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="text-lg font-bold text-gray-900">Learning Tiers</h3>
+                                                    <button
+                                                        onClick={() => setShowRankPopup(false)}
+                                                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                                                    >
+                                                        <span className="text-xl">×</span>
+                                                    </button>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mb-4">
+                                                    {profileStats.rank === "Beginner"
+                                                        ? "Progress to unlock higher tiers! Complete lessons to earn points."
+                                                        : "Earn points by completing lessons to advance through the tiers!"}
+                                                </p>
+                                                <div className="space-y-3">
+                                                    {/* Beginner */}
+                                                    <div className={`p-3 rounded-xl border-2 ${profileStats.rank === "Beginner"
+                                                        ? "bg-gray-50 border-gray-300"
+                                                        : "bg-white border-gray-200"
+                                                        }`}>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                                                                <span className="font-semibold text-gray-900">Beginner</span>
+                                                            </div>
+                                                            <span className="text-sm text-gray-600">0-99 points</span>
+                                                        </div>
+                                                        {profileStats.rank === "Beginner" && (
+                                                            <p className="text-xs text-gray-500 mt-1 ml-5">Your current tier</p>
+                                                        )}
+                                                        {profileStats.rank === "Beginner" && profileStats.totalPoints < 100 && (
+                                                            <p className="text-xs text-gray-500 mt-1 ml-5">
+                                                                Complete {Math.max(0, Math.ceil((100 - profileStats.totalPoints) / 10))} more lessons to reach Bronze Learner
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Bronze */}
+                                                    <div className={`p-3 rounded-xl border-2 ${profileStats.rank === "Bronze Learner"
+                                                        ? "bg-amber-50 border-amber-300"
+                                                        : "bg-white border-gray-200"
+                                                        }`}>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                                                                <span className="font-semibold text-gray-900">Bronze Learner</span>
+                                                            </div>
+                                                            <span className="text-sm text-gray-600">100-249 points</span>
+                                                        </div>
+                                                        {profileStats.rank === "Bronze Learner" && (
+                                                            <p className="text-xs text-amber-600 mt-1 ml-5">Your current tier</p>
+                                                        )}
+                                                        {profileStats.rank === "Bronze Learner" && profileStats.totalPoints < 250 && (
+                                                            <p className="text-xs text-gray-500 mt-1 ml-5">
+                                                                Complete {Math.max(0, Math.ceil((250 - profileStats.totalPoints) / 10))} more lessons to reach Silver Learner
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Silver */}
+                                                    <div className={`p-3 rounded-xl border-2 ${profileStats.rank === "Silver Learner"
+                                                        ? "bg-gray-100 border-gray-400"
+                                                        : "bg-white border-gray-200"
+                                                        }`}>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                                                                <span className="font-semibold text-gray-900">Silver Learner</span>
+                                                            </div>
+                                                            <span className="text-sm text-gray-600">250-499 points</span>
+                                                        </div>
+                                                        {profileStats.rank === "Silver Learner" && (
+                                                            <p className="text-xs text-gray-600 mt-1 ml-5">Your current tier</p>
+                                                        )}
+                                                        {profileStats.rank === "Silver Learner" && profileStats.totalPoints < 500 && (
+                                                            <p className="text-xs text-gray-500 mt-1 ml-5">
+                                                                Complete {Math.max(0, Math.ceil((500 - profileStats.totalPoints) / 10))} more lessons to reach Gold Learner
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Gold */}
+                                                    <div className={`p-3 rounded-xl border-2 ${profileStats.rank === "Gold Learner"
+                                                        ? "bg-yellow-50 border-yellow-300"
+                                                        : "bg-white border-gray-200"
+                                                        }`}>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                                                <span className="font-semibold text-gray-900">Gold Learner</span>
+                                                            </div>
+                                                            <span className="text-sm text-gray-600">500-999 points</span>
+                                                        </div>
+                                                        {profileStats.rank === "Gold Learner" && (
+                                                            <p className="text-xs text-yellow-600 mt-1 ml-5">Your current tier</p>
+                                                        )}
+                                                        {profileStats.rank === "Gold Learner" && profileStats.totalPoints < 1000 && (
+                                                            <p className="text-xs text-gray-500 mt-1 ml-5">
+                                                                Complete {Math.max(0, Math.ceil((1000 - profileStats.totalPoints) / 10))} more lessons to reach Master Learner
+                                                            </p>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Master */}
+                                                    <div className={`p-3 rounded-xl border-2 ${profileStats.rank === "Master Learner"
+                                                        ? "bg-purple-50 border-purple-300"
+                                                        : "bg-white border-gray-200"
+                                                        }`}>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                                                                <span className="font-semibold text-gray-900">Master Learner</span>
+                                                            </div>
+                                                            <span className="text-sm text-gray-600">1000+ points</span>
+                                                        </div>
+                                                        {profileStats.rank === "Master Learner" && (
+                                                            <p className="text-xs text-purple-600 mt-1 ml-5">Your current tier</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                                    <p className="text-xs text-gray-500 text-center">
+                                                        You have {profileStats.totalPoints} points
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
