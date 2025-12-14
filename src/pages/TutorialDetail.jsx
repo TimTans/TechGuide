@@ -12,6 +12,8 @@ export default function TutorialDetail() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [userProgress, setUserProgress] = useState(null);
+    const [isCompleting, setIsCompleting] = useState(false);
+    const [completeMessage, setCompleteMessage] = useState(null);
 
     useEffect(() => {
         const fetchTutorial = async () => {
@@ -25,6 +27,13 @@ export default function TutorialDetail() {
                 setLoading(true);
                 setError(null);
 
+                const tutorialId = parseInt(id);
+                if (isNaN(tutorialId)) {
+                    setError("Invalid tutorial ID");
+                    setLoading(false);
+                    return;
+                }
+
                 // Fetch tutorial data
                 const { data: tutorialData, error: tutorialError } = await supabase
                     .from("tutorials")
@@ -36,7 +45,7 @@ export default function TutorialDetail() {
                             description
                         )
                     `)
-                    .eq("tutorial_id", id)
+                    .eq("tutorial_id", tutorialId)
                     .single();
 
                 if (tutorialError) {
@@ -60,26 +69,39 @@ export default function TutorialDetail() {
                     .from("user_progress")
                     .select("*")
                     .eq("user_id", userId)
-                    .eq("tutorial_id", id)
-                    .single();
+                    .eq("tutorial_id", tutorialId)
+                    .maybeSingle();
 
                 if (progressError && progressError.code !== 'PGRST116') {
                     // PGRST116 is "not found" which is fine for new tutorials
                     console.error("Error fetching progress:", progressError);
                 } else {
-                    setUserProgress(progressData);
+                    setUserProgress(progressData || null);
                 }
 
                 // Mark tutorial as started if not already
                 if (!progressData) {
-                    await supabase
+                    const { error: insertError } = await supabase
                         .from("user_progress")
                         .insert({
                             user_id: userId,
-                            tutorial_id: parseInt(id),
+                            tutorial_id: tutorialId,
                             status: "in_progress",
                             started_at: new Date().toISOString()
                         });
+
+                    if (insertError) {
+                        console.error("Error marking as started:", insertError);
+                    } else {
+                        // Refresh progress after insert
+                        const { data: newProgress } = await supabase
+                            .from("user_progress")
+                            .select("*")
+                            .eq("user_id", userId)
+                            .eq("tutorial_id", tutorialId)
+                            .maybeSingle();
+                        setUserProgress(newProgress || null);
+                    }
                 }
             } catch (err) {
                 console.error("Unexpected error:", err);
@@ -95,40 +117,104 @@ export default function TutorialDetail() {
     }, [id, session]);
 
     const handleMarkComplete = async () => {
-        if (!session?.user || !tutorial) return;
+        if (!session?.user || !tutorial || isCompleting) return;
+
+        setIsCompleting(true);
+        setCompleteMessage(null);
 
         try {
             const userId = session.user.id;
-            const { error } = await supabase
-                .from("user_progress")
-                .upsert({
-                    user_id: userId,
-                    tutorial_id: parseInt(id),
-                    status: "completed",
-                    completed_at: new Date().toISOString(),
-                    started_at: userProgress?.started_at || new Date().toISOString()
-                }, {
-                    onConflict: "user_id,tutorial_id"
-                });
+            const tutorialId = parseInt(id);
+            const completedAt = new Date().toISOString();
+            const startedAt = userProgress?.started_at || completedAt;
 
-            if (error) {
-                console.error("Error marking complete:", error);
-            } else {
-                // Refresh progress
-                const { data } = await supabase
+            // First, try to update existing record
+            const { data: updateData, error: updateError } = await supabase
+                .from("user_progress")
+                .update({
+                    status: "completed",
+                    completed_at: completedAt
+                })
+                .eq("user_id", userId)
+                .eq("tutorial_id", tutorialId)
+                .select()
+                .single();
+
+            let finalData = updateData;
+            let finalError = updateError;
+
+            // If no record exists, insert a new one
+            if (updateError && updateError.code === 'PGRST116') {
+                const { data: insertData, error: insertError } = await supabase
                     .from("user_progress")
-                    .select("*")
-                    .eq("user_id", userId)
-                    .eq("tutorial_id", id)
+                    .insert({
+                        user_id: userId,
+                        tutorial_id: tutorialId,
+                        status: "completed",
+                        completed_at: completedAt,
+                        started_at: startedAt
+                    })
+                    .select()
                     .single();
-                setUserProgress(data);
+
+                finalData = insertData;
+                finalError = insertError;
+            }
+
+            if (finalError) {
+                console.error("Error marking complete:", finalError);
+                setCompleteMessage({ type: "error", text: "Failed to mark as complete. Please try again." });
+            } else {
+                // Use the returned data if available, otherwise refresh
+                let updatedProgress = finalData;
+
+                // If we don't have the data, refresh it
+                if (!updatedProgress) {
+                    const { data: refreshedProgress, error: refreshError } = await supabase
+                        .from("user_progress")
+                        .select("*")
+                        .eq("user_id", userId)
+                        .eq("tutorial_id", tutorialId)
+                        .maybeSingle();
+
+                    if (refreshError) {
+                        console.error("Error refreshing progress:", refreshError);
+                    } else {
+                        updatedProgress = refreshedProgress;
+                    }
+                }
+
+                // Update progress state with the latest data
+                if (updatedProgress) {
+                    setUserProgress(updatedProgress);
+                    console.log("Progress updated:", updatedProgress);
+                } else {
+                    // Fallback: create the expected structure
+                    setUserProgress({
+                        user_id: userId,
+                        tutorial_id: tutorialId,
+                        status: "completed",
+                        completed_at: completedAt,
+                        started_at: startedAt
+                    });
+                }
+
+                setCompleteMessage({ type: "success", text: "Tutorial marked as complete! ✓" });
+
+                // Clear message after 3 seconds
+                setTimeout(() => {
+                    setCompleteMessage(null);
+                }, 3000);
             }
         } catch (err) {
             console.error("Error:", err);
+            setCompleteMessage({ type: "error", text: "An unexpected error occurred. Please try again." });
+        } finally {
+            setIsCompleting(false);
         }
     };
 
-    // Redirect to signin if not authenticated
+    // Early returns - must come before any calculations that depend on tutorial
     if (session === null) {
         return null;
     }
@@ -171,6 +257,7 @@ export default function TutorialDetail() {
         );
     }
 
+    // All calculations that depend on tutorial - only reached if tutorial exists
     // Extract YouTube video ID from URL if it exists
     const getVideoUrl = () => {
         // Check various possible field names for video URL
@@ -222,7 +309,9 @@ export default function TutorialDetail() {
     const categoryName = tutorial.categories?.category_name ||
         (Array.isArray(tutorial.categories) && tutorial.categories[0]?.category_name) ||
         "Uncategorized";
-    const isCompleted = userProgress?.completed_at !== null;
+
+    // Check completion status - handle both object and direct property access
+    const isCompleted = userProgress?.completed_at !== null && userProgress?.completed_at !== undefined;
 
     return (
         <div className="min-h-screen bg-linear-to-b from-orange-50 via-orange-50 to-white">
@@ -333,15 +422,38 @@ export default function TutorialDetail() {
                     </div>
                 )}
 
+                {/* Success/Error Message */}
+                {completeMessage && (
+                    <div className={`mt-6 p-4 rounded-xl ${completeMessage.type === "success"
+                        ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
+                        : "bg-red-50 border border-red-200 text-red-800"
+                        }`}>
+                        <p className="font-semibold">{completeMessage.text}</p>
+                    </div>
+                )}
+
                 {/* Complete Button */}
                 {!isCompleted && (
                     <div className="mt-8">
                         <button
                             onClick={handleMarkComplete}
-                            className="w-full sm:w-auto px-8 py-3 bg-emerald-600 text-white rounded-full font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                            disabled={isCompleting}
+                            className={`w-full sm:w-auto px-8 py-3 rounded-full font-semibold transition-colors flex items-center justify-center gap-2 ${isCompleting
+                                ? "bg-gray-400 text-white cursor-not-allowed"
+                                : "bg-emerald-600 text-white hover:bg-emerald-700"
+                                }`}
                         >
-                            <CheckCircle className="w-5 h-5" />
-                            Mark as Complete
+                            {isCompleting ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    Marking Complete...
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle className="w-5 h-5" />
+                                    Mark as Complete
+                                </>
+                            )}
                         </button>
                     </div>
                 )}
