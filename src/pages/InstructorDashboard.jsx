@@ -324,7 +324,10 @@ export default function InstructorDashboard({ user: userProp }) {
                         <div className="bg-white rounded-3xl shadow-sm p-8">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-bold text-gray-900">Recent Students</h2>
-                                <button className="text-gray-600 hover:text-gray-900 font-semibold text-sm flex items-center gap-1">
+                                <button
+                                    onClick={() => navigate("/allstudents")}
+                                    className="text-gray-600 hover:text-gray-900 font-semibold text-sm flex items-center gap-1"
+                                >
                                     View All
                                     <ArrowRight className="w-4 h-4" />
                                 </button>

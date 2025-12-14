@@ -13,6 +13,7 @@ import TutorialDetail from "./pages/TutorialDetail";
 import Safety from "./pages/safety";
 
 import InstructorDashboard from "./pages/InstructorDashboard";
+import AllStudents from "./pages/AllStudents";
 import Support from "./pages/SupportPage";
 import AdminSignUpPage from "./pages/adminsignup";
 import App from "./App";
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
     { path: "/safety", element: <Safety /> },
     // { path: "/support", element: <Support /> },
     { path: "/instructor", element: <InstructorDashboard /> },
+    { path: "/allstudents", element: <AllStudents /> },
     { path: "/tutorials", element: <Tutorials /> },
     { path: "/tutorials/:id", element: <TutorialDetail /> },
     { path: "/safety", element: <Safety /> },

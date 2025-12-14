@@ -59,10 +59,10 @@ export default function CourseCard({ course, onClick, onEdit, role }) {
                         onClick?.(course);
                     }}
                     className={`w-full py-3 rounded-full font-semibold transition-colors flex items-center justify-center gap-2 group-hover:gap-3 ${role === 'instructor'
-                            ? 'bg-gray-900 text-white hover:bg-gray-800'
-                            : course.isCompleted
-                                ? 'bg-emerald-700 text-white hover:bg-emerald-800'
-                                : 'bg-gray-900 text-white hover:bg-gray-800'
+                        ? 'bg-gray-900 text-white hover:bg-gray-800'
+                        : course.isCompleted
+                            ? 'bg-emerald-700 text-white hover:bg-emerald-800'
+                            : 'bg-gray-900 text-white hover:bg-gray-800'
                         }`}
                 >
                     {role === 'instructor'
