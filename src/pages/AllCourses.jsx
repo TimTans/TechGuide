@@ -28,6 +28,7 @@ export default function AllCourses() {
     const [userRole, setUserRole] = useState('')
     const [toEdit, setToEdit] = useState({})
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     // Redirect to signin if not authenticated
     useEffect(() => {
@@ -180,7 +181,7 @@ export default function AllCourses() {
         if (session) {
             fetchData();
         }
-    }, [session]);
+    }, [session, refreshTrigger]);
 
     // Handle category selection from navigation state
     useEffect(() => {
@@ -272,13 +273,40 @@ export default function AllCourses() {
         setToEdit(course);
         setIsModalOpen(true);
     }
-    const handleOnCourseEditSubmit = async (newName) => {
-        
-        await supabase
-        .from('tutorials')
-        .update({title: newName})
-        .eq('tutorial_id', toEdit.tutorial_id)
-        setIsModalOpen(false);
+    const handleOnCourseEditSubmit = async (updatedFields) => {
+        try {
+            const updateData = {};
+
+            if (updatedFields.title !== undefined) {
+                updateData.title = updatedFields.title;
+            }
+            if (updatedFields.description !== undefined) {
+                updateData.description = updatedFields.description;
+            }
+            if (updatedFields.estimated_duration !== undefined) {
+                updateData.estimated_duration = updatedFields.estimated_duration;
+            }
+            if (updatedFields.video_url !== undefined) {
+                updateData.video_url = updatedFields.video_url;
+            }
+
+            const { error } = await supabase
+                .from('tutorials')
+                .update(updateData)
+                .eq('tutorial_id', toEdit.tutorial_id);
+
+            if (error) {
+                console.error('Error updating course:', error);
+                alert('Failed to update course. Please try again.');
+            } else {
+                setIsModalOpen(false);
+                // Trigger data refresh
+                setRefreshTrigger(prev => prev + 1);
+            }
+        } catch (error) {
+            console.error('Error updating course:', error);
+            alert('Failed to update course. Please try again.');
+        }
     }
 
     // Show loading or nothing while checking auth
@@ -375,15 +403,15 @@ export default function AllCourses() {
                                         key={course.id}
                                         course={course}
                                         onClick={handleCourseClick}
-                                        onEdit = {handleCourseEdit}
-                                        role = {userRole}
+                                        onEdit={handleCourseEdit}
+                                        role={userRole}
                                     />
                                 ))}
                             </div>
                         )}
 
 
-                        {userRole == 'instructor' && <CourseEditingModal isOpen={isModalOpen} onClose = {()=>setIsModalOpen(false)} courseToEdit={toEdit} onSubmit = {handleOnCourseEditSubmit}/>}
+                        {userRole == 'instructor' && <CourseEditingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} courseToEdit={toEdit} onSubmit={handleOnCourseEditSubmit} />}
                     </>
                 )}
             </main>
