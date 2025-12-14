@@ -57,26 +57,43 @@ tests/
 
 ---
 
-## Files to Commit to GitHub
+## Coverage Thresholds
+
+This project enforces minimum code coverage requirements:
+
+- **Statements:** 25% (current baseline: 43.75%)
+- **Branches:** 25% (current baseline: 26.02%)
+- **Functions:** 25% (current baseline: 40.94%)
+- **Lines:** 25% (current baseline: 45.14%)
+
+**Note:** These thresholds represent the current project baseline and will be gradually increased as test coverage improves.
+
+### Checking Coverage
 ```bash
-# Add all new test files
-git add vitest.config.js
-git add playwright.config.js
-git add src/test/
-git add tests/
-git add package.json
-git add package-lock.json
+# Run tests with coverage report
+npm run test:coverage
 
-# Commit
-git commit -m "feat: Setup QA testing infrastructure with Playwright and Vitest"
-
-# Push
-git push origin main
+# View detailed HTML report
+open coverage/index.html
 ```
 
----
+### What Happens If Coverage Drops
 
-## Daily QA Workflow
+If your code changes cause coverage to drop below thresholds:
+- ❌ Tests will fail locally
+- ❌ CI/CD pipeline will fail
+- ❌ PR cannot be merged until coverage is restored
+
+### Tips for Meeting Coverage
+
+1. Write tests for new code before submitting PR
+2. Check coverage locally: `npm run test:coverage`
+3. Focus on testing critical paths and edge cases
+4. Review HTML coverage report to find uncovered lines
+
+See [TESTING_STANDARDS.md](TESTING_STANDARDS.md) for detailed guidelines.
+
+---
 
 ### Before Starting Work
 ```bash
