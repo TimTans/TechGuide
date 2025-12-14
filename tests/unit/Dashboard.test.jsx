@@ -1,31 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Dashboard from '@/pages/dashboard.jsx';
 import { UserAuth } from '@/context/AuthContext';
 
-// Mock supabase client
-const mockSupabase = {
-    from: vi.fn((table) => {
-        const mockQuery = {
-            select: vi.fn((columns, options) => {
-                if (options?.head) {
-                    return Promise.resolve({ count: 0, error: null });
-                }
-                return {
+// Mock supabase client - use hoisted to avoid initialization issues
+const { mockSupabase } = vi.hoisted(() => {
+    return {
+        mockSupabase: {
+            from: vi.fn((table) => {
+                const mockQuery = {
+                    select: vi.fn((columns, options) => {
+                        if (options?.head) {
+                            return Promise.resolve({ count: 0, error: null });
+                        }
+                        return {
+                            eq: vi.fn(() => Promise.resolve({ data: [], error: null })),
+                        };
+                    }),
                     eq: vi.fn(() => Promise.resolve({ data: [], error: null })),
                 };
+                return mockQuery;
             }),
-            eq: vi.fn(() => Promise.resolve({ data: [], error: null })),
-        };
-        return mockQuery;
-    }),
-    auth: {
-        getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-        getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-        signOut: vi.fn(() => Promise.resolve({ error: null })),
-    },
-};
+            auth: {
+                getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+                getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+                signOut: vi.fn(() => Promise.resolve({ error: null })),
+            },
+        },
+    };
+});
 
 vi.mock('@/context/AuthContext', () => ({
     UserAuth: vi.fn(),
@@ -48,7 +52,7 @@ describe('Dashboard Component', () => {
         vi.clearAllMocks();
     });
 
-    it('should call navigate to signin when session is null', () => {
+    it('should call navigate to signin when session is null', async () => {
         UserAuth.mockReturnValue({
             session: null,
             getUserData: mockGetUserData,
@@ -60,7 +64,9 @@ describe('Dashboard Component', () => {
             </BrowserRouter>
         );
 
-        expect(mockNavigate).toHaveBeenCalledWith('/signin');
+        await waitFor(() => {
+            expect(mockNavigate).toHaveBeenCalledWith('/signin');
+        });
     });
 
     it('should render nothing when not authenticated', () => {
@@ -95,7 +101,9 @@ describe('Dashboard Component', () => {
             </BrowserRouter>
         );
 
-        expect(mockGetUserData).toHaveBeenCalled();
+        await waitFor(() => {
+            expect(mockGetUserData).toHaveBeenCalled();
+        });
     });
 
     it('should render dashboard when authenticated', () => {
