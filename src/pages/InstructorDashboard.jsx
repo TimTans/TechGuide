@@ -173,7 +173,7 @@ export default function InstructorDashboard({ user: userProp }) {
                         progress: avgProgress,
                         color: metadata.color
                     };
-                }).filter(course => course.students > 0 || course.progress > 0); // Only show courses with activity
+                }); // Show all categories
 
                 setCourses(coursesWithStats);
 
@@ -373,7 +373,7 @@ export default function InstructorDashboard({ user: userProp }) {
                             {loading ? (
                                 <div className="text-center py-12 text-gray-600">Loading courses...</div>
                             ) : courses.length === 0 ? (
-                                <div className="text-center py-12 text-gray-600">No courses with student activity yet.</div>
+                                <div className="text-center py-12 text-gray-600">No courses available yet.</div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {courses.map((course) => {
@@ -422,7 +422,13 @@ export default function InstructorDashboard({ user: userProp }) {
                                                     </div>
                                                 </div>
 
-                                                <button className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 group-hover:gap-3">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate("/allcourses", { state: { selectedCategoryId: course.id } });
+                                                    }}
+                                                    className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 group-hover:gap-3"
+                                                >
                                                     Manage Course
                                                     <ArrowRight className="w-5 h-5" />
                                                 </button>
