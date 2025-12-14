@@ -35,7 +35,7 @@ export default function CourseCard({ course, onClick, onEdit, role }) {
                         </button>
                     }
 
-                    {hasProgress && (
+                    {hasProgress && role !== 'instructor' && (
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${course.isCompleted
                             ? 'bg-emerald-100 text-emerald-700'
                             : 'bg-blue-100 text-blue-700'
@@ -58,12 +58,20 @@ export default function CourseCard({ course, onClick, onEdit, role }) {
                         e.stopPropagation();
                         onClick?.(course);
                     }}
-                    className={`w-full py-3 rounded-full font-semibold transition-colors flex items-center justify-center gap-2 group-hover:gap-3 ${course.isCompleted
-                        ? 'bg-emerald-700 text-white hover:bg-emerald-800'
-                        : 'bg-gray-900 text-white hover:bg-gray-800'
+                    className={`w-full py-3 rounded-full font-semibold transition-colors flex items-center justify-center gap-2 group-hover:gap-3 ${role === 'instructor'
+                            ? 'bg-gray-900 text-white hover:bg-gray-800'
+                            : course.isCompleted
+                                ? 'bg-emerald-700 text-white hover:bg-emerald-800'
+                                : 'bg-gray-900 text-white hover:bg-gray-800'
                         }`}
                 >
-                    {course.isCompleted ? 'Completed' : hasProgress ? 'Continue Learning' : 'Start Course'}
+                    {role === 'instructor'
+                        ? 'View Course'
+                        : course.isCompleted
+                            ? 'Completed'
+                            : hasProgress
+                                ? 'Continue Learning'
+                                : 'Start Course'}
                     <ChevronRight className="w-5 h-5" />
                 </button>
             </div>

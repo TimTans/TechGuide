@@ -37,10 +37,7 @@ export default function Navbar() {
                         <span className="text-xl font-bold text-gray-900">TECHGUIDE</span>
                     </Link>
                     <div className="flex items-center gap-4">
-                        <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
-                            <Bell className="w-6 h-6 text-gray-700" />
-                            <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white">2</span>
-                        </button>
+
 
                         {/* User Profile Dropdown */}
                         <div className="relative" ref={dropdownRef}>

@@ -2,18 +2,22 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { UserAuth, supabase } from "../context/AuthContext";
 import DashboardNavbar from "../components/Navbar";
-import { ArrowLeft, Home, Play, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, Home, Play, CheckCircle, Clock, Users } from "lucide-react";
+import StudentProgressCard from "../components/TutorialDetail/StudentProgressCard";
 
 export default function TutorialDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { session } = UserAuth();
+    const { session, getUserData } = UserAuth();
     const [tutorial, setTutorial] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [userProgress, setUserProgress] = useState(null);
     const [isCompleting, setIsCompleting] = useState(false);
     const [completeMessage, setCompleteMessage] = useState(null);
+    const [userRole, setUserRole] = useState(null);
+    const [studentProgress, setStudentProgress] = useState([]);
+    const [loadingProgress, setLoadingProgress] = useState(false);
 
     useEffect(() => {
         const fetchTutorial = async () => {
@@ -63,44 +67,125 @@ export default function TutorialDetail() {
 
                 setTutorial(tutorialData);
 
-                // Fetch user progress
+                // Get user role first
+                const userDataResult = await getUserData();
+                const isInstructor = userDataResult.success && userDataResult.data.user_role === "instructor";
+                setUserRole(userDataResult.success ? userDataResult.data.user_role : null);
+
                 const userId = session.user.id;
-                const { data: progressData, error: progressError } = await supabase
-                    .from("user_progress")
-                    .select("*")
-                    .eq("user_id", userId)
-                    .eq("tutorial_id", tutorialId)
-                    .maybeSingle();
 
-                if (progressError && progressError.code !== 'PGRST116') {
-                    // PGRST116 is "not found" which is fine for new tutorials
-                    console.error("Error fetching progress:", progressError);
-                } else {
-                    setUserProgress(progressData || null);
-                }
-
-                // Mark tutorial as started if not already
-                if (!progressData) {
-                    const { error: insertError } = await supabase
+                // If instructor, fetch all student progress for this tutorial
+                if (isInstructor) {
+                    setLoadingProgress(true);
+                    const { data: allProgress, error: studentProgressError } = await supabase
                         .from("user_progress")
-                        .insert({
-                            user_id: userId,
-                            tutorial_id: tutorialId,
-                            status: "in_progress",
-                            started_at: new Date().toISOString()
+                        .select(`
+                            *,
+                            users (
+                                user_id,
+                                first_name,
+                                last_name,
+                                email
+                            )
+                        `)
+                        .eq("tutorial_id", tutorialId);
+
+                    if (studentProgressError) {
+                        console.error("Error fetching student progress:", studentProgressError);
+                        // Check if it's an RLS policy error
+                        if (studentProgressError.code === '42501' || studentProgressError.message?.includes('permission denied') || studentProgressError.message?.includes('policy')) {
+                            console.error("RLS Policy Error: Instructors need permission to view all student progress. Please check your Supabase RLS policies.");
+                        }
+                    } else {
+                        // Format and deduplicate student progress data
+                        // Group by user_id to ensure each student appears only once
+                        const progressMap = new Map();
+
+                        (allProgress || []).forEach(progress => {
+                            const userId = progress.user_id;
+                            const existing = progressMap.get(userId);
+
+                            // If no existing record, add this one
+                            if (!existing) {
+                                progressMap.set(userId, {
+                                    user_id: userId,
+                                    name: `${progress.users?.first_name || ''} ${progress.users?.last_name || ''}`.trim() || 'Unknown User',
+                                    email: progress.users?.email || '',
+                                    started_at: progress.started_at,
+                                    completed_at: progress.completed_at,
+                                    status: progress.status
+                                });
+                            } else {
+                                // If existing record, prioritize completed over in-progress
+                                // If current is completed and existing is not, replace
+                                if (progress.completed_at && !existing.completed_at) {
+                                    progressMap.set(userId, {
+                                        user_id: userId,
+                                        name: `${progress.users?.first_name || ''} ${progress.users?.last_name || ''}`.trim() || 'Unknown User',
+                                        email: progress.users?.email || '',
+                                        started_at: progress.started_at || existing.started_at,
+                                        completed_at: progress.completed_at,
+                                        status: progress.status
+                                    });
+                                }
+                                // If both are completed or both are in-progress, use the most recent
+                                else if (progress.completed_at && existing.completed_at) {
+                                    const currentDate = new Date(progress.completed_at);
+                                    const existingDate = new Date(existing.completed_at);
+                                    if (currentDate > existingDate) {
+                                        progressMap.set(userId, {
+                                            ...existing,
+                                            completed_at: progress.completed_at,
+                                            status: progress.status
+                                        });
+                                    }
+                                }
+                            }
                         });
 
-                    if (insertError) {
-                        console.error("Error marking as started:", insertError);
+                        const formattedProgress = Array.from(progressMap.values());
+                        setStudentProgress(formattedProgress);
+                    }
+                    setLoadingProgress(false);
+                } else {
+                    // For non-instructors, fetch their own progress
+                    const { data: progressData, error: progressError } = await supabase
+                        .from("user_progress")
+                        .select("*")
+                        .eq("user_id", userId)
+                        .eq("tutorial_id", tutorialId)
+                        .maybeSingle();
+
+                    if (progressError && progressError.code !== 'PGRST116') {
+                        // PGRST116 is "not found" which is fine for new tutorials
+                        console.error("Error fetching progress:", progressError);
                     } else {
-                        // Refresh progress after insert
-                        const { data: newProgress } = await supabase
+                        setUserProgress(progressData || null);
+                    }
+
+                    // Mark tutorial as started if not already
+                    if (!progressData) {
+                        const { error: insertError } = await supabase
                             .from("user_progress")
-                            .select("*")
-                            .eq("user_id", userId)
-                            .eq("tutorial_id", tutorialId)
-                            .maybeSingle();
-                        setUserProgress(newProgress || null);
+                            .insert({
+                                user_id: userId,
+                                tutorial_id: tutorialId,
+                                status: "in_progress",
+                                started_at: new Date().toISOString()
+                            });
+
+                        if (insertError) {
+                            console.error("Error marking as started:", insertError);
+                        } else {
+                            // Refresh progress after insert
+                            const { data: newProgress } = await supabase
+                                .from("user_progress")
+                                .select("*")
+                                .eq("user_id", userId)
+                                .eq("tutorial_id", tutorialId)
+                                .maybeSingle();
+                            setUserProgress(newProgress || null);
+                        }
                     }
                 }
             } catch (err) {
@@ -422,6 +507,53 @@ export default function TutorialDetail() {
                     </div>
                 )}
 
+                {/* Student Progress Section (Instructor View) */}
+                {userRole === "instructor" && (
+                    <div className="mb-8 bg-white rounded-3xl shadow-sm p-8">
+                        <div className="flex items-center gap-3 mb-6">
+                            <Users className="w-6 h-6 text-gray-900" />
+                            <h2 className="text-2xl font-bold text-gray-900">Student Progress</h2>
+                        </div>
+                        {loadingProgress ? (
+                            <div className="text-center py-12 text-gray-600">Loading student progress...</div>
+                        ) : studentProgress.length === 0 ? (
+                            <div className="text-center py-12 text-gray-600">
+                                <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                <p>No students have started this tutorial yet.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+                                    <div className="text-sm text-gray-600">
+                                        <span className="font-semibold text-gray-900">{studentProgress.length}</span> student{studentProgress.length !== 1 ? 's' : ''} enrolled
+                                    </div>
+                                    <div className="text-sm text-gray-600">
+                                        <span className="font-semibold text-emerald-600">
+                                            {studentProgress.filter(s => s.completed_at).length}
+                                        </span> completed
+                                    </div>
+                                </div>
+                                {studentProgress
+                                    .sort((a, b) => {
+                                        // Sort: completed first, then by completion date, then by start date
+                                        if (a.completed_at && !b.completed_at) return -1;
+                                        if (!a.completed_at && b.completed_at) return 1;
+                                        if (a.completed_at && b.completed_at) {
+                                            return new Date(b.completed_at) - new Date(a.completed_at);
+                                        }
+                                        if (a.started_at && b.started_at) {
+                                            return new Date(b.started_at) - new Date(a.started_at);
+                                        }
+                                        return 0;
+                                    })
+                                    .map((student) => (
+                                        <StudentProgressCard key={student.user_id} student={student} />
+                                    ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Success/Error Message */}
                 {completeMessage && (
                     <div className={`mt-6 p-4 rounded-xl ${completeMessage.type === "success"
@@ -432,8 +564,8 @@ export default function TutorialDetail() {
                     </div>
                 )}
 
-                {/* Complete Button */}
-                {!isCompleted && (
+                {/* Complete Button (only for non-instructors) */}
+                {!isCompleted && userRole !== "instructor" && (
                     <div className="mt-8">
                         <button
                             onClick={handleMarkComplete}

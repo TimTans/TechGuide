@@ -1,10 +1,10 @@
 import {
     Monitor, LogOut, Bell, BookOpen, FileText, Phone, Lock,
-    Clock, ArrowRight, User, TrendingUp, CheckCircle
+    Clock, ArrowRight, User, TrendingUp, CheckCircle, ChevronDown, Settings
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase, UserAuth } from "../context/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import CreateCourseModal from "../components/CreateCourseModal";
 import CourseCard from "../components/InstructorDashboard/CourseCard";
 import StudentCard from "../components/InstructorDashboard/StudentCard";
@@ -35,6 +35,8 @@ export default function InstructorDashboard({ user: userProp }) {
     const [categories, setCategories] = useState([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -147,6 +149,23 @@ export default function InstructorDashboard({ user: userProp }) {
         fetchInstructorData();
     }, [session, refreshTrigger]);
 
+    // Handle clicking outside dropdown to close it
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+
+        if (isDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isDropdownOpen]);
+
     const handleCreateCourse = async (courseData) => {
         try {
             const { error } = await supabase
@@ -183,17 +202,56 @@ export default function InstructorDashboard({ user: userProp }) {
                             <span className="text-xl font-bold text-gray-900">TECHGUIDE</span>
                         </Link>
                         <div className="flex items-center gap-4">
-                            <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <Bell className="w-6 h-6 text-gray-700" />
-                                <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white">3</span>
-                            </button>
-                            <button
-                                onClick={handleSignOut}
-                                className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors text-sm font-semibold"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                Sign Out
-                            </button>
+                            {/* User Profile Dropdown */}
+                            <div className="relative" ref={dropdownRef}>
+                                <button
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors text-sm font-semibold"
+                                >
+                                    <User className="w-5 h-5 text-gray-700" />
+                                    <ChevronDown className={`w-4 h-4 text-gray-700 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {/* Dropdown Menu */}
+                                {isDropdownOpen && (
+                                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                                        <button
+                                            onClick={() => {
+                                                navigate("/userprofile");
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                                        >
+                                            <User className="w-5 h-5 text-gray-700" />
+                                            <span className="text-sm font-medium text-gray-700">User Profile</span>
+                                        </button>
+
+                                        <button
+                                            onClick={() => {
+                                                navigate("/settings");
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                                        >
+                                            <Settings className="w-5 h-5 text-gray-700" />
+                                            <span className="text-sm font-medium text-gray-700">Settings</span>
+                                        </button>
+
+                                        <div className="border-t border-gray-200 my-2"></div>
+
+                                        <button
+                                            onClick={() => {
+                                                handleSignOut();
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-left"
+                                        >
+                                            <LogOut className="w-5 h-5 text-red-600" />
+                                            <span className="text-sm font-medium text-red-600">Sign Out</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
