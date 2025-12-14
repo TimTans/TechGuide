@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserAuth, supabase } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
+import { toEasternDateString, getTodayEastern, getYesterdayEastern, getDateEastern, getDayOfWeekEastern } from "../utils/dateHelpers";
 
 export default function UserProfile() {
     const navigate = useNavigate();
@@ -96,58 +97,51 @@ export default function UserProfile() {
                 const hoursSpent = Math.round((totalMinutes / 60) * 10) / 10; // Round to 1 decimal
 
                 // Calculate streak (same logic as dashboard)
+                // Uses Eastern Time Zone for all date calculations
                 const calculateStreak = () => {
                     if (!progressData || progressData.length === 0) return 0;
 
+                    // Get all unique dates (YYYY-MM-DD format) when lessons were completed
+                    // Convert to Eastern time zone
                     const completedDates = new Set();
                     completedProgress.forEach(p => {
                         if (p.completed_at) {
-                            const date = new Date(p.completed_at);
-                            const year = date.getUTCFullYear();
-                            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-                            const day = String(date.getUTCDate()).padStart(2, '0');
-                            completedDates.add(`${year}-${month}-${day}`);
+                            const easternDate = toEasternDateString(p.completed_at);
+                            completedDates.add(easternDate);
                         }
                     });
 
                     if (completedDates.size === 0) return 0;
 
-                    const today = new Date();
-                    const todayYear = today.getUTCFullYear();
-                    const todayMonth = String(today.getUTCMonth() + 1).padStart(2, '0');
-                    const todayDay = String(today.getUTCDate()).padStart(2, '0');
-                    const todayStr = `${todayYear}-${todayMonth}-${todayDay}`;
+                    // Get today's and yesterday's date strings in Eastern time zone
+                    const todayStr = getTodayEastern();
+                    const yesterdayStr = getYesterdayEastern();
 
-                    const yesterday = new Date(today);
-                    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-                    const yesterdayYear = yesterday.getUTCFullYear();
-                    const yesterdayMonth = String(yesterday.getUTCMonth() + 1).padStart(2, '0');
-                    const yesterdayDay = String(yesterday.getUTCDate()).padStart(2, '0');
-                    const yesterdayStr = `${yesterdayYear}-${yesterdayMonth}-${yesterdayDay}`;
-
+                    // Check if there's activity today or yesterday
+                    // If the most recent activity is more than 1 day ago, streak is broken
                     const allDates = Array.from(completedDates).sort().reverse();
                     const mostRecentDate = allDates[0];
 
+                    // If most recent activity is before yesterday, streak is 0
                     if (mostRecentDate < yesterdayStr) return 0;
 
-                    let checkDate = new Date(today);
-                    checkDate.setUTCHours(0, 0, 0, 0);
-
+                    // Start counting from today or yesterday (whichever has activity)
+                    let daysAgo = 0;
                     if (!completedDates.has(todayStr)) {
-                        checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+                        daysAgo = 1; // Start from yesterday if no activity today
                     }
 
                     let streak = 0;
-                    while (true) {
-                        const year = checkDate.getUTCFullYear();
-                        const month = String(checkDate.getUTCMonth() + 1).padStart(2, '0');
-                        const day = String(checkDate.getUTCDate()).padStart(2, '0');
-                        const dateStr = `${year}-${month}-${day}`;
 
-                        if (completedDates.has(dateStr)) {
+                    // Count consecutive days backwards
+                    while (true) {
+                        const checkDateStr = getDateEastern(daysAgo);
+
+                        if (completedDates.has(checkDateStr)) {
                             streak++;
-                            checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+                            daysAgo++;
                         } else {
+                            // Streak broken - no activity on this day
                             break;
                         }
                     }
@@ -260,28 +254,19 @@ export default function UserProfile() {
                     }
                 ];
 
-                // Calculate weekly activity
+                // Calculate weekly activity (using Eastern Time Zone)
                 const weeklyActivityData = [];
                 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                const today = new Date();
 
                 for (let i = 6; i >= 0; i--) {
-                    const date = new Date(today);
-                    date.setUTCDate(date.getUTCDate() - i);
-                    date.setUTCHours(0, 0, 0, 0);
+                    // Get date string in Eastern time zone
+                    const dateStr = getDateEastern(i);
 
-                    const year = date.getUTCFullYear();
-                    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-                    const day = String(date.getUTCDate()).padStart(2, '0');
-                    const dateStr = `${year}-${month}-${day}`;
-
+                    // Filter completed progress for this day in Eastern time zone
                     const dayCompleted = completedProgress.filter(p => {
                         if (!p.completed_at) return false;
-                        const pDate = new Date(p.completed_at);
-                        const pYear = pDate.getUTCFullYear();
-                        const pMonth = String(pDate.getUTCMonth() + 1).padStart(2, '0');
-                        const pDay = String(pDate.getUTCDate()).padStart(2, '0');
-                        return `${pYear}-${pMonth}-${pDay}` === dateStr;
+                        const easternDate = toEasternDateString(p.completed_at);
+                        return easternDate === dateStr;
                     });
 
                     // Calculate hours for this day
@@ -291,8 +276,11 @@ export default function UserProfile() {
                         .reduce((sum, t) => sum + (t.estimated_duration || 0), 0);
                     const dayHours = dayMinutes / 60;
 
+                    // Get day of week in Eastern time zone
+                    const dayOfWeek = getDayOfWeekEastern(i);
+
                     weeklyActivityData.push({
-                        day: daysOfWeek[date.getUTCDay()],
+                        day: daysOfWeek[dayOfWeek],
                         hours: Math.round(dayHours * 10) / 10,
                         height: Math.min(Math.round((dayHours / 2) * 100), 100), // Max 2 hours = 100%
                         isToday: i === 0

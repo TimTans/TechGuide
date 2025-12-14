@@ -7,6 +7,7 @@ import { UserAuth, supabase } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import DashboardNavbar from "../components/Navbar";
 import UserCourses from "../components/UserCourses";
+import { toEasternDateString, getTodayEastern, getYesterdayEastern, getDateEastern } from "../utils/dateHelpers";
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -77,38 +78,25 @@ export default function Dashboard() {
                 ).length;
 
                 // Calculate day streak - consecutive days with at least one completed lesson
+                // Uses Eastern Time Zone for all date calculations
                 const calculateStreak = () => {
                     if (!progressData || progressData.length === 0) return 0;
 
                     // Get all unique dates (YYYY-MM-DD format) when lessons were completed
+                    // Convert to Eastern time zone
                     const completedDates = new Set();
                     progressData.forEach(p => {
                         if (p.completed_at) {
-                            const date = new Date(p.completed_at);
-                            // Normalize to date string (YYYY-MM-DD) for comparison
-                            const year = date.getUTCFullYear();
-                            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-                            const day = String(date.getUTCDate()).padStart(2, '0');
-                            completedDates.add(`${year}-${month}-${day}`);
+                            const easternDate = toEasternDateString(p.completed_at);
+                            completedDates.add(easternDate);
                         }
                     });
 
                     if (completedDates.size === 0) return 0;
 
-                    // Get today's date string
-                    const today = new Date();
-                    const todayYear = today.getUTCFullYear();
-                    const todayMonth = String(today.getUTCMonth() + 1).padStart(2, '0');
-                    const todayDay = String(today.getUTCDate()).padStart(2, '0');
-                    const todayStr = `${todayYear}-${todayMonth}-${todayDay}`;
-
-                    // Get yesterday's date string
-                    const yesterday = new Date(today);
-                    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-                    const yesterdayYear = yesterday.getUTCFullYear();
-                    const yesterdayMonth = String(yesterday.getUTCMonth() + 1).padStart(2, '0');
-                    const yesterdayDay = String(yesterday.getUTCDate()).padStart(2, '0');
-                    const yesterdayStr = `${yesterdayYear}-${yesterdayMonth}-${yesterdayDay}`;
+                    // Get today's and yesterday's date strings in Eastern time zone
+                    const todayStr = getTodayEastern();
+                    const yesterdayStr = getYesterdayEastern();
 
                     // Check if there's activity today or yesterday
                     // If the most recent activity is more than 1 day ago, streak is broken
@@ -119,27 +107,20 @@ export default function Dashboard() {
                     if (mostRecentDate < yesterdayStr) return 0;
 
                     // Start counting from today or yesterday (whichever has activity)
-                    let checkDate = new Date(today);
-                    checkDate.setUTCHours(0, 0, 0, 0);
-
-                    // If no activity today, start from yesterday
+                    let daysAgo = 0;
                     if (!completedDates.has(todayStr)) {
-                        checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+                        daysAgo = 1; // Start from yesterday if no activity today
                     }
 
                     let streak = 0;
 
                     // Count consecutive days backwards
                     while (true) {
-                        const year = checkDate.getUTCFullYear();
-                        const month = String(checkDate.getUTCMonth() + 1).padStart(2, '0');
-                        const day = String(checkDate.getUTCDate()).padStart(2, '0');
-                        const dateStr = `${year}-${month}-${day}`;
+                        const checkDateStr = getDateEastern(daysAgo);
 
-                        if (completedDates.has(dateStr)) {
+                        if (completedDates.has(checkDateStr)) {
                             streak++;
-                            // Move to previous day
-                            checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+                            daysAgo++;
                         } else {
                             // Streak broken - no activity on this day
                             break;
