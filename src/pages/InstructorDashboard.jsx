@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase, UserAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import { getCategoryMetadata } from "../components/AllCourses/utils";
+import CreateCourseModal from "../components/CreateCourseModal";
 
 export default function InstructorDashboard({ user: userProp }) {
     const navigate = useNavigate();
@@ -21,6 +22,8 @@ export default function InstructorDashboard({ user: userProp }) {
     const [students, setStudents] = useState([]);
     const [recentActivities, setRecentActivities] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [categories, setCategories] = useState([]);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -96,6 +99,9 @@ export default function InstructorDashboard({ user: userProp }) {
 
                 if (categoriesError) {
                     console.error("Error fetching categories:", categoriesError);
+                    setCategories([]);
+                } else {
+                    setCategories(categoriesData || []);
                 }
 
                 // Fetch all tutorials
@@ -287,6 +293,26 @@ export default function InstructorDashboard({ user: userProp }) {
 
         fetchInstructorData();
     }, [session]);
+
+    const handleCreateCourse = async (courseData) => {
+        try {
+            const { error } = await supabase
+                .from('tutorials')
+                .insert([courseData]);
+
+            if (error) {
+                console.error('Error creating course:', error);
+                alert('Failed to create course. Please try again.');
+            } else {
+                setIsCreateModalOpen(false);
+                // Refresh the data
+                window.location.reload();
+            }
+        } catch (error) {
+            console.error('Error creating course:', error);
+            alert('Failed to create course. Please try again.');
+        }
+    };
 
     // Show loading or nothing while checking auth
     if (session === null) {
@@ -537,17 +563,16 @@ export default function InstructorDashboard({ user: userProp }) {
                         <div className="bg-white rounded-3xl shadow-sm p-6">
                             <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
                             <div className="space-y-3">
-                                <button className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => setIsCreateModalOpen(true)}
+                                    className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                                >
                                     <BookOpen className="w-5 h-5" />
                                     Create New Course
                                 </button>
                                 <button className="w-full py-3 bg-emerald-500 text-white rounded-full font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
                                     <FileText className="w-5 h-5" />
                                     Add Lesson Content
-                                </button>
-                                <button className="w-full py-3 bg-blue-500 text-white rounded-full font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center gap-2">
-                                    <Users className="w-5 h-5" />
-                                    Manage Students
                                 </button>
                             </div>
                         </div>
@@ -582,6 +607,12 @@ export default function InstructorDashboard({ user: userProp }) {
                     </div>
                 </div>
             </main>
+            <CreateCourseModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                categories={categories}
+                onSubmit={handleCreateCourse}
+            />
         </div>
     );
 };
