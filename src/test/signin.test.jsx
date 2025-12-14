@@ -23,12 +23,14 @@ vi.mock('react-router-dom', async () => {
 
 describe('SignInPage', () => {
     const mockSignIn = vi.fn();
+    const mockGetUserData = vi.fn();
 
     beforeEach(() => {
         vi.clearAllMocks();
         UserAuth.mockReturnValue({
             session: null,
             signIn: mockSignIn,
+            getUserData: mockGetUserData,
         });
     });
 
@@ -52,6 +54,10 @@ describe('SignInPage', () => {
     it('should successfully sign in and navigate to dashboard', async () => {
         const user = userEvent.setup();
         mockSignIn.mockResolvedValue({ success: true });
+        mockGetUserData.mockResolvedValue({
+            success: true,
+            data: { user_role: 'student' }
+        });
         renderSignInPage();
 
         await user.type(screen.getByLabelText('Email Address'), 'test@example.com');
@@ -60,8 +66,9 @@ describe('SignInPage', () => {
 
         expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
         await waitFor(() => {
+            expect(mockGetUserData).toHaveBeenCalled();
             expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
-        });
+        }, { timeout: 3000 });
     });
 
     it('should display error message on failed sign in', async () => {

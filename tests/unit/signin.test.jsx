@@ -21,12 +21,14 @@ vi.mock('react-router-dom', async () => {
 
 describe('SignInPage Component', () => {
     const mockSignIn = vi.fn();
+    const mockGetUserData = vi.fn();
 
     beforeEach(() => {
         vi.clearAllMocks();
         UserAuth.mockReturnValue({
             session: null,
             signIn: mockSignIn,
+            getUserData: mockGetUserData,
         });
     });
 
@@ -121,6 +123,10 @@ describe('SignInPage Component', () => {
     it('should navigate to dashboard on successful sign in', async () => {
         const user = userEvent.setup();
         mockSignIn.mockResolvedValue({ success: true });
+        mockGetUserData.mockResolvedValue({
+            success: true,
+            data: { user_role: 'student' }
+        });
 
         render(
             <BrowserRouter>
@@ -134,6 +140,7 @@ describe('SignInPage Component', () => {
 
         await waitFor(() => {
             expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
+            expect(mockGetUserData).toHaveBeenCalled();
             expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
         });
     });
@@ -207,6 +214,10 @@ describe('SignInPage Component', () => {
     it('should clear form fields after successful sign in', async () => {
         const user = userEvent.setup();
         mockSignIn.mockResolvedValue({ success: true });
+        mockGetUserData.mockResolvedValue({
+            success: true,
+            data: { user_role: 'student' }
+        });
 
         render(
             <BrowserRouter>
@@ -232,6 +243,10 @@ describe('SignInPage Component', () => {
         mockSignIn.mockImplementation(() =>
             new Promise(resolve => setTimeout(() => resolve({ success: true }), 100))
         );
+        mockGetUserData.mockResolvedValue({
+            success: true,
+            data: { user_role: 'student' }
+        });
 
         render(
             <BrowserRouter>

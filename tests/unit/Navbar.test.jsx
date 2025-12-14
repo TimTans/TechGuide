@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -34,19 +34,11 @@ describe('Navbar Component', () => {
                 <Navbar />
             </BrowserRouter>
         );
-        
+
         expect(screen.getByText('TECHGUIDE')).toBeInTheDocument();
     });
 
-    it('should render notification bell with badge', () => {
-        render(
-            <BrowserRouter>
-                <Navbar />
-            </BrowserRouter>
-        );
-        
-        expect(screen.getByText('2')).toBeInTheDocument();
-    });
+    // Notification bell removed from component - test removed
 
     it('should have dashboard link in logo', () => {
         render(
@@ -54,7 +46,7 @@ describe('Navbar Component', () => {
                 <Navbar />
             </BrowserRouter>
         );
-        
+
         const logo = screen.getByText('TECHGUIDE').closest('a');
         expect(logo).toHaveAttribute('href', '/dashboard');
     });
@@ -65,7 +57,7 @@ describe('Navbar Component', () => {
                 <Navbar />
             </BrowserRouter>
         );
-        
+
         const buttons = screen.getAllByRole('button');
         expect(buttons.length).toBeGreaterThan(0);
     });
@@ -73,74 +65,106 @@ describe('Navbar Component', () => {
     it('should call signOut and navigate home on sign out', async () => {
         const user = userEvent.setup();
         mockSignOut.mockResolvedValue({ success: true });
-        
+
         render(
             <BrowserRouter>
                 <Navbar />
             </BrowserRouter>
         );
-        
-        const menuButton = screen.getAllByRole('button')[1];
+
+        // Find the dropdown button by looking for the button that contains a User icon
+        const buttons = screen.getAllByRole('button');
+        const menuButton = buttons.find(btn => btn.querySelector('svg'));
+        expect(menuButton).toBeDefined();
         await user.click(menuButton);
-        
+
+        await waitFor(() => {
+            expect(screen.getByText('Sign Out')).toBeInTheDocument();
+        });
+
         const signOutButton = screen.getByText('Sign Out');
         await user.click(signOutButton);
-        
-        expect(mockSignOut).toHaveBeenCalled();
-        expect(mockNavigate).toHaveBeenCalledWith('/');
+
+        await waitFor(() => {
+            expect(mockSignOut).toHaveBeenCalled();
+            expect(mockNavigate).toHaveBeenCalledWith('/');
+        });
     });
 
     it('should open and close dropdown menu', async () => {
         const user = userEvent.setup();
-        
+
         render(
             <BrowserRouter>
                 <Navbar />
             </BrowserRouter>
         );
-        
+
         expect(screen.queryByText('User Profile')).not.toBeInTheDocument();
-        
-        const menuButton = screen.getAllByRole('button')[1];
+
+        // Find the dropdown button by looking for the button that contains a User icon
+        const buttons = screen.getAllByRole('button');
+        const menuButton = buttons.find(btn => btn.querySelector('svg'));
+        expect(menuButton).toBeDefined();
         await user.click(menuButton);
-        
-        expect(screen.getByText('User Profile')).toBeInTheDocument();
-        expect(screen.getByText('Settings')).toBeInTheDocument();
+
+        await waitFor(() => {
+            expect(screen.getByText('User Profile')).toBeInTheDocument();
+            expect(screen.getByText('Settings')).toBeInTheDocument();
+        });
     });
 
     it('should navigate to user profile when clicked', async () => {
         const user = userEvent.setup();
-        
+
         render(
             <BrowserRouter>
                 <Navbar />
             </BrowserRouter>
         );
-        
-        const menuButton = screen.getAllByRole('button')[1];
+
+        // Find the dropdown button by looking for the button that contains a User icon
+        const buttons = screen.getAllByRole('button');
+        const menuButton = buttons.find(btn => btn.querySelector('svg'));
+        expect(menuButton).toBeDefined();
         await user.click(menuButton);
-        
+
+        await waitFor(() => {
+            expect(screen.getByText('User Profile')).toBeInTheDocument();
+        });
+
         const profileButton = screen.getByText('User Profile');
         await user.click(profileButton);
-        
-        expect(mockNavigate).toHaveBeenCalledWith('/userprofile');
+
+        await waitFor(() => {
+            expect(mockNavigate).toHaveBeenCalledWith('/userprofile');
+        });
     });
 
     it('should navigate to settings when clicked', async () => {
         const user = userEvent.setup();
-        
+
         render(
             <BrowserRouter>
                 <Navbar />
             </BrowserRouter>
         );
-        
-        const menuButton = screen.getAllByRole('button')[1];
+
+        // Find the dropdown button by looking for the button that contains a User icon
+        const buttons = screen.getAllByRole('button');
+        const menuButton = buttons.find(btn => btn.querySelector('svg'));
+        expect(menuButton).toBeDefined();
         await user.click(menuButton);
-        
+
+        await waitFor(() => {
+            expect(screen.getByText('Settings')).toBeInTheDocument();
+        });
+
         const settingsButton = screen.getByText('Settings');
         await user.click(settingsButton);
-        
-        expect(mockNavigate).toHaveBeenCalledWith('/settings');
+
+        await waitFor(() => {
+            expect(mockNavigate).toHaveBeenCalledWith('/settings');
+        });
     });
 });

@@ -4,8 +4,32 @@ import { BrowserRouter } from 'react-router-dom';
 import Dashboard from '@/pages/dashboard.jsx';
 import { UserAuth } from '@/context/AuthContext';
 
+// Mock supabase client
+const mockSupabase = {
+    from: vi.fn((table) => {
+        const mockQuery = {
+            select: vi.fn((columns, options) => {
+                if (options?.head) {
+                    return Promise.resolve({ count: 0, error: null });
+                }
+                return {
+                    eq: vi.fn(() => Promise.resolve({ data: [], error: null })),
+                };
+            }),
+            eq: vi.fn(() => Promise.resolve({ data: [], error: null })),
+        };
+        return mockQuery;
+    }),
+    auth: {
+        getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+        getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+        signOut: vi.fn(() => Promise.resolve({ error: null })),
+    },
+};
+
 vi.mock('@/context/AuthContext', () => ({
     UserAuth: vi.fn(),
+    supabase: mockSupabase,
 }));
 
 const mockNavigate = vi.fn();

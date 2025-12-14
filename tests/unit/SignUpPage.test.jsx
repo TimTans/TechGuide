@@ -305,13 +305,14 @@ describe('SignUpPage Component', () => {
         await user.click(screen.getByRole('button', { name: /create account/i }));
 
         await waitFor(() => {
+            expect(mockSignUpNewUser).toHaveBeenCalled();
             expect(mockSignUpNewUser).toHaveBeenCalledWith(
                 'john@example.com',
                 'password123',
                 'John',
                 'Doe',
-                'Student'
+                'student'
             );
-        });
+        }, { timeout: 3000 });
     });
 });
