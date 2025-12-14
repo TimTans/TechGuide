@@ -23,10 +23,7 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Run unit tests (excluding integration tests)
-      run: npx vitest run --exclude 'tests/integration/**'
-      
-    - name: Generate coverage report
+    - name: Run tests with coverage (excluding integration tests)
       run: npx vitest run --coverage --exclude 'tests/integration/**'
       
     - name: Archive coverage report
