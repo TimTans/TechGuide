@@ -1,6 +1,6 @@
 import {
     Monitor, LogOut, Bell, BookOpen, FileText, Phone, Lock,
-    Clock, ArrowRight, User, TrendingUp, CheckCircle, ChevronDown, Settings
+    Clock, ArrowRight, User, CheckCircle, ChevronDown, Settings
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase, UserAuth } from "../context/AuthContext";
@@ -26,7 +26,6 @@ export default function InstructorDashboard({ user: userProp }) {
         totalStudents: 0,
         activeCourses: 0,
         completedSessions: 0,
-        averageRating: null,
     });
     const [courses, setCourses] = useState([]);
     const [students, setStudents] = useState([]);
@@ -98,12 +97,6 @@ export default function InstructorDashboard({ user: userProp }) {
                     p => p.completed_at !== null
                 ).length;
 
-                // Get unique categories that have tutorials
-                const activeCategories = new Set(
-                    (tutorialsData || []).map(t => t.category_id)
-                );
-                const activeCourses = activeCategories.size;
-
                 // Calculate course stats
                 const coursesWithStats = calculateCourseStats(
                     categoriesData,
@@ -111,6 +104,9 @@ export default function InstructorDashboard({ user: userProp }) {
                     progressData
                 );
                 setCourses(coursesWithStats);
+
+                // Count total number of lessons (tutorials)
+                const activeCourses = (tutorialsData || []).length;
 
                 // Process student data
                 const studentProgressMap = buildStudentProgressMap(progressData);
@@ -136,7 +132,6 @@ export default function InstructorDashboard({ user: userProp }) {
                     totalStudents,
                     activeCourses,
                     completedSessions,
-                    averageRating: null,
                 });
 
             } catch (error) {
@@ -368,15 +363,6 @@ export default function InstructorDashboard({ user: userProp }) {
                         <div className="bg-white rounded-3xl shadow-sm p-6">
                             <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Stats</h3>
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                                    <div className="flex items-center gap-3">
-                                        <TrendingUp className="w-5 h-5 text-emerald-600" />
-                                        <span className="text-sm font-semibold text-gray-700">Avg. Rating</span>
-                                    </div>
-                                    <span className="text-lg font-bold text-gray-900">
-                                        {instructorStats.averageRating !== null ? instructorStats.averageRating.toFixed(1) : 'N/A'}
-                                    </span>
-                                </div>
                                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                                     <div className="flex items-center gap-3">
                                         <CheckCircle className="w-5 h-5 text-blue-600" />
