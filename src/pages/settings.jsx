@@ -12,6 +12,7 @@ export default function Settings() {
     const { session, getUserData } = UserAuth();
     const [userData, setUserData] = useState(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
+    const [sessionChecked, setSessionChecked] = useState(false);
 
     // Form states
     const [formData, setFormData] = useState({
@@ -36,27 +37,38 @@ export default function Settings() {
         highContrast: false
     });
 
-    // Redirect to signin if not authenticated
+    // Wait for initial session check to complete
     useEffect(() => {
-        if (session === null) {
+        // Check session after a brief delay to allow it to load
+        const checkSession = async () => {
+            // Wait a bit for session to initialize
+            await new Promise(resolve => setTimeout(resolve, 150));
+            setSessionChecked(true);
+        };
+        checkSession();
+    }, []);
+
+    // Redirect to signin if not authenticated (only after session has been checked)
+    useEffect(() => {
+        if (sessionChecked && session === null) {
             navigate("/signin");
-        } else if (session?.user) {
+        } else if (sessionChecked && session?.user) {
             getUserData().then((res) => {
                 if (res.success) {
                     setUserData(res.data);
-                    setFormData({
-                        ...formData,
+                    setFormData(prev => ({
+                        ...prev,
                         firstName: res.data.first_name || '',
                         lastName: res.data.last_name || '',
                         email: res.data.email || ''
-                    });
+                    }));
                 }
             });
         }
-    }, [session, navigate]);
+    }, [session, sessionChecked, navigate, getUserData]);
 
-    // Show loading while checking auth
-    if (session === null) {
+    // Show loading while checking auth (wait for session to be checked)
+    if (!sessionChecked || session === null) {
         return null;
     }
 

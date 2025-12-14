@@ -29,13 +29,25 @@ export default function UserProfile() {
     const [showRankPopup, setShowRankPopup] = useState(false);
     const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
     const rankButtonRef = useRef(null);
+    const [sessionChecked, setSessionChecked] = useState(false);
 
-    // Redirect to signin if not authenticated
+    // Wait for initial session check to complete
     useEffect(() => {
-        if (session === null) {
+        // Check session after a brief delay to allow it to load
+        const checkSession = async () => {
+            // Wait a bit for session to initialize
+            await new Promise(resolve => setTimeout(resolve, 150));
+            setSessionChecked(true);
+        };
+        checkSession();
+    }, []);
+
+    // Redirect to signin if not authenticated (only after session has been checked)
+    useEffect(() => {
+        if (sessionChecked && session === null) {
             navigate("/signin");
         }
-    }, [session, navigate]);
+    }, [session, sessionChecked, navigate]);
 
     // Fetch user data and profile stats
     useEffect(() => {
@@ -340,8 +352,26 @@ export default function UserProfile() {
         }
     }, [session, navigate]);
 
-    // Show loading while checking auth
-    if (session === null) {
+    // Get badge colors based on rank
+    const getBadgeColors = (rank) => {
+        switch (rank) {
+            case "Beginner":
+                return "from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600";
+            case "Bronze Learner":
+                return "from-orange-600 to-orange-700 hover:from-orange-500 hover:to-orange-600";
+            case "Silver Learner":
+                return "from-slate-500 to-slate-600 hover:from-slate-400 hover:to-slate-500";
+            case "Gold Learner":
+                return "from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500";
+            case "Master Learner":
+                return "from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600";
+            default:
+                return "from-gray-700 to-gray-900 hover:from-gray-600 hover:to-gray-800";
+        }
+    };
+
+    // Show loading while checking auth (wait for session to be checked)
+    if (!sessionChecked || session === null) {
         return null;
     }
 
@@ -441,7 +471,7 @@ export default function UserProfile() {
                                             }
                                             setShowRankPopup(!showRankPopup);
                                         }}
-                                        className="inline-flex items-center gap-2 px-5 py-2 bg-linear-to-r from-gray-700 to-gray-900 text-white rounded-full font-bold text-sm shadow-lg hover:from-gray-600 hover:to-gray-800 transition-all cursor-pointer"
+                                        className={`inline-flex items-center gap-2 px-5 py-2 bg-linear-to-r ${getBadgeColors(profileStats.rank)} text-white rounded-full font-bold text-sm shadow-lg transition-all cursor-pointer`}
                                     >
                                         <Trophy className="w-5 h-5" />
                                         {profileStats.rank}
@@ -483,13 +513,13 @@ export default function UserProfile() {
                                                         }`}>
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-2">
-                                                                <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                                                                <div className="w-3 h-3 rounded-full bg-gray-500"></div>
                                                                 <span className="font-semibold text-gray-900">Beginner</span>
                                                             </div>
                                                             <span className="text-sm text-gray-600">0-99 points</span>
                                                         </div>
                                                         {profileStats.rank === "Beginner" && (
-                                                            <p className="text-xs text-gray-500 mt-1 ml-5">Your current tier</p>
+                                                            <p className="text-xs text-gray-600 mt-1 ml-5">Your current tier</p>
                                                         )}
                                                         {profileStats.rank === "Beginner" && profileStats.totalPoints < 100 && (
                                                             <p className="text-xs text-gray-500 mt-1 ml-5">
@@ -500,18 +530,18 @@ export default function UserProfile() {
 
                                                     {/* Bronze */}
                                                     <div className={`p-3 rounded-xl border-2 ${profileStats.rank === "Bronze Learner"
-                                                        ? "bg-amber-50 border-amber-300"
+                                                        ? "bg-orange-50 border-orange-300"
                                                         : "bg-white border-gray-200"
                                                         }`}>
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-2">
-                                                                <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                                                                <div className="w-3 h-3 rounded-full bg-orange-600"></div>
                                                                 <span className="font-semibold text-gray-900">Bronze Learner</span>
                                                             </div>
                                                             <span className="text-sm text-gray-600">100-249 points</span>
                                                         </div>
                                                         {profileStats.rank === "Bronze Learner" && (
-                                                            <p className="text-xs text-amber-600 mt-1 ml-5">Your current tier</p>
+                                                            <p className="text-xs text-orange-600 mt-1 ml-5">Your current tier</p>
                                                         )}
                                                         {profileStats.rank === "Bronze Learner" && profileStats.totalPoints < 250 && (
                                                             <p className="text-xs text-gray-500 mt-1 ml-5">
@@ -522,18 +552,18 @@ export default function UserProfile() {
 
                                                     {/* Silver */}
                                                     <div className={`p-3 rounded-xl border-2 ${profileStats.rank === "Silver Learner"
-                                                        ? "bg-gray-100 border-gray-400"
+                                                        ? "bg-slate-50 border-slate-300"
                                                         : "bg-white border-gray-200"
                                                         }`}>
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-2">
-                                                                <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                                                                <div className="w-3 h-3 rounded-full bg-slate-400"></div>
                                                                 <span className="font-semibold text-gray-900">Silver Learner</span>
                                                             </div>
                                                             <span className="text-sm text-gray-600">250-499 points</span>
                                                         </div>
                                                         {profileStats.rank === "Silver Learner" && (
-                                                            <p className="text-xs text-gray-600 mt-1 ml-5">Your current tier</p>
+                                                            <p className="text-xs text-slate-600 mt-1 ml-5">Your current tier</p>
                                                         )}
                                                         {profileStats.rank === "Silver Learner" && profileStats.totalPoints < 500 && (
                                                             <p className="text-xs text-gray-500 mt-1 ml-5">
@@ -544,12 +574,12 @@ export default function UserProfile() {
 
                                                     {/* Gold */}
                                                     <div className={`p-3 rounded-xl border-2 ${profileStats.rank === "Gold Learner"
-                                                        ? "bg-yellow-50 border-yellow-300"
+                                                        ? "bg-yellow-50 border-yellow-400"
                                                         : "bg-white border-gray-200"
                                                         }`}>
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-2">
-                                                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                                                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
                                                                 <span className="font-semibold text-gray-900">Gold Learner</span>
                                                             </div>
                                                             <span className="text-sm text-gray-600">500-999 points</span>
@@ -566,12 +596,12 @@ export default function UserProfile() {
 
                                                     {/* Master */}
                                                     <div className={`p-3 rounded-xl border-2 ${profileStats.rank === "Master Learner"
-                                                        ? "bg-purple-50 border-purple-300"
+                                                        ? "bg-purple-50 border-purple-400"
                                                         : "bg-white border-gray-200"
                                                         }`}>
                                                         <div className="flex items-center justify-between">
                                                             <div className="flex items-center gap-2">
-                                                                <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                                                                <div className="w-3 h-3 rounded-full bg-purple-600"></div>
                                                                 <span className="font-semibold text-gray-900">Master Learner</span>
                                                             </div>
                                                             <span className="text-sm text-gray-600">1000+ points</span>
