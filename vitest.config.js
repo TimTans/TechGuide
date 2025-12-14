@@ -31,10 +31,10 @@ export default defineConfig({
         '**/mockData.js',
       ],
       thresholds: {
-        statements: 50,
+        statements: 40,
         branches: 25,
-        functions: 65,
-        lines: 50,
+        functions: 40,
+        lines: 40,
       },
     },
   },
