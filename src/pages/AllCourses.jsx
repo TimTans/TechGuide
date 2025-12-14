@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { UserAuth, supabase } from "../context/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import DashboardNavbar from "../components/Navbar";
 import LoadingSkeleton from "../components/AllCourses/LoadingSkeleton";
 import CategoryCard from "../components/AllCourses/CategoryCard";
@@ -29,6 +29,7 @@ export default function AllCourses() {
     const [toEdit, setToEdit] = useState({})
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const hasProcessedNavigationState = useRef(false);
 
     // Redirect to signin if not authenticated
     useEffect(() => {
@@ -185,17 +186,23 @@ export default function AllCourses() {
 
     // Handle category selection from navigation state
     useEffect(() => {
-        if (location.state?.selectedCategoryId && categories.length > 0 && !selectedCategory) {
+        const categoryId = location.state?.selectedCategoryId;
+        if (categoryId && categories.length > 0 && !selectedCategory && !hasProcessedNavigationState.current) {
             const categoryToSelect = categories.find(
-                cat => cat.id === location.state.selectedCategoryId
+                cat => cat.id === categoryId
             );
             if (categoryToSelect) {
                 setSelectedCategory(categoryToSelect);
+                hasProcessedNavigationState.current = true;
                 // Clear the location state to prevent re-selecting on re-renders
                 window.history.replaceState({}, document.title);
             }
         }
-    }, [categories, location.state, selectedCategory]);
+        // Reset the ref when category is cleared manually
+        if (!selectedCategory && !categoryId) {
+            hasProcessedNavigationState.current = false;
+        }
+    }, [categories, location.state?.selectedCategoryId, selectedCategory]);
 
     // Get filtered courses for selected category
     const getFilteredCourses = () => {
@@ -252,6 +259,9 @@ export default function AllCourses() {
         setSelectedCategory(null);
         setSearchQuery("");
         setDifficultyFilter("all");
+        hasProcessedNavigationState.current = false;
+        // Clear location state to prevent useEffect from re-triggering
+        window.history.replaceState({}, document.title);
     };
 
     const handleCategorySelect = (category) => {
