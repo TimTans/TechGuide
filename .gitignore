@@ -40,3 +40,4 @@ dist
 .env
 .env.*
 node_modules
+reports/
