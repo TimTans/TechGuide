@@ -68,15 +68,80 @@ export default function Dashboard() {
                     p => p.completed_at !== null
                 ).length;
 
-                // Calculate streak (simplified - you can enhance this later)
-                // For now, we'll use a simple calculation based on recent activity
-                const recentProgress = (progressData || []).filter(p => {
-                    if (!p.completed_at) return false;
-                    const completedDate = new Date(p.completed_at);
-                    const daysSince = (Date.now() - completedDate.getTime()) / (1000 * 60 * 60 * 24);
-                    return daysSince <= 7; // Active in last 7 days
-                });
-                const streak = Math.min(recentProgress.length, 7); // Cap at 7 for now
+                // Calculate day streak - consecutive days with at least one completed lesson
+                const calculateStreak = () => {
+                    if (!progressData || progressData.length === 0) return 0;
+
+                    // Get all unique dates (YYYY-MM-DD format) when lessons were completed
+                    const completedDates = new Set();
+                    progressData.forEach(p => {
+                        if (p.completed_at) {
+                            const date = new Date(p.completed_at);
+                            // Normalize to date string (YYYY-MM-DD) for comparison
+                            const year = date.getUTCFullYear();
+                            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                            const day = String(date.getUTCDate()).padStart(2, '0');
+                            completedDates.add(`${year}-${month}-${day}`);
+                        }
+                    });
+
+                    if (completedDates.size === 0) return 0;
+
+                    // Get today's date string
+                    const today = new Date();
+                    const todayYear = today.getUTCFullYear();
+                    const todayMonth = String(today.getUTCMonth() + 1).padStart(2, '0');
+                    const todayDay = String(today.getUTCDate()).padStart(2, '0');
+                    const todayStr = `${todayYear}-${todayMonth}-${todayDay}`;
+
+                    // Get yesterday's date string
+                    const yesterday = new Date(today);
+                    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+                    const yesterdayYear = yesterday.getUTCFullYear();
+                    const yesterdayMonth = String(yesterday.getUTCMonth() + 1).padStart(2, '0');
+                    const yesterdayDay = String(yesterday.getUTCDate()).padStart(2, '0');
+                    const yesterdayStr = `${yesterdayYear}-${yesterdayMonth}-${yesterdayDay}`;
+
+                    // Check if there's activity today or yesterday
+                    // If the most recent activity is more than 1 day ago, streak is broken
+                    const allDates = Array.from(completedDates).sort().reverse();
+                    const mostRecentDate = allDates[0];
+
+                    // If most recent activity is before yesterday, streak is 0
+                    if (mostRecentDate < yesterdayStr) return 0;
+
+                    // Start counting from today or yesterday (whichever has activity)
+                    let checkDate = new Date(today);
+                    checkDate.setUTCHours(0, 0, 0, 0);
+
+                    // If no activity today, start from yesterday
+                    if (!completedDates.has(todayStr)) {
+                        checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+                    }
+
+                    let streak = 0;
+
+                    // Count consecutive days backwards
+                    while (true) {
+                        const year = checkDate.getUTCFullYear();
+                        const month = String(checkDate.getUTCMonth() + 1).padStart(2, '0');
+                        const day = String(checkDate.getUTCDate()).padStart(2, '0');
+                        const dateStr = `${year}-${month}-${day}`;
+
+                        if (completedDates.has(dateStr)) {
+                            streak++;
+                            // Move to previous day
+                            checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+                        } else {
+                            // Streak broken - no activity on this day
+                            break;
+                        }
+                    }
+
+                    return streak;
+                };
+
+                const streak = calculateStreak();
 
                 setUserProgress({
                     completedLessons: completedTutorials,
