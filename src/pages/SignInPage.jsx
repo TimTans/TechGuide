@@ -10,7 +10,7 @@ const SignInPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    const { session, signIn } = UserAuth();
+    const { session, signIn, getUserData } = UserAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -24,7 +24,14 @@ const SignInPage = () => {
             // Clear form
             setEmail("");
             setPassword("");
-            navigate("/dashboard");
+
+            // Check user role and redirect accordingly
+            const userDataResult = await getUserData();
+            if (userDataResult.success && userDataResult.data?.user_role === "instructor") {
+                navigate("/instructor");
+            } else {
+                navigate("/dashboard");
+            }
         } else {
             setError(result.error?.message || "Failed to sign in. Please check your credentials.");
         }
@@ -32,8 +39,10 @@ const SignInPage = () => {
         setLoading(false);
     };
 
-    // Redirect if already logged in
+    // Redirect if already logged in - check role and redirect accordingly
     if (session) {
+        // We'll let the Dashboard component handle the redirect based on role
+        // This avoids needing to fetch user data here
         return <Navigate to="/dashboard" replace />;
     }
 

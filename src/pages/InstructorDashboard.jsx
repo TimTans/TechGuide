@@ -1,6 +1,6 @@
 import {
     Monitor, LogOut, Mail, Video, MessageCircle, ShoppingCart, Phone, AlertTriangle, CheckCircle,
-    Clock, ArrowRight, Bell, Users, Lock, Sparkles, BookOpen, UserCheck, TrendingUp, FileText
+    Clock, ArrowRight, Bell, Users, Lock, Sparkles, BookOpen, UserCheck, TrendingUp, FileText, User
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../context/AuthContext";
@@ -133,6 +133,13 @@ export default function InstructorDashboard({ user }) {
                             )}
                         </div>
                         <div className="flex gap-3">
+                            <button
+                                onClick={() => navigate("/dashboard?view=student")}
+                                className="bg-blue-500 hover:bg-blue-600 text-white rounded-3xl shadow-md px-6 py-3 font-semibold transition-colors flex items-center gap-2"
+                            >
+                                <User className="w-5 h-5" />
+                                View as Student
+                            </button>
                             <div className="bg-white rounded-3xl shadow-md p-6 min-w-[140px] text-center hover:shadow-xl transition-shadow">
                                 <div className="text-4xl font-black text-gray-900 mb-1">{instructorStats.totalStudents}</div>
                                 <div className="text-sm font-semibold text-gray-600">Total Students</div>

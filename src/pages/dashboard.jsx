@@ -1,8 +1,8 @@
 import {
     Mail, Video, MessageCircle, ShoppingCart, Phone, AlertTriangle, CheckCircle,
-    Clock, ArrowRight, Users, Lock, Sparkles
+    Clock, ArrowRight, Users, Lock, Sparkles, GraduationCap
 } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { UserAuth, supabase } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import DashboardNavbar from "../components/Navbar";
@@ -10,9 +10,11 @@ import UserCourses from "../components/UserCourses";
 
 export default function Dashboard() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { session, getUserData } = UserAuth();
     const user = session?.user;
     const [userData, setUserData] = useState(null);
+    const [userRole, setUserRole] = useState(null);
     const [userProgress, setUserProgress] = useState({
         completedLessons: 0,
         totalLessons: 0,
@@ -28,10 +30,16 @@ export default function Dashboard() {
             getUserData().then((res) => {
                 if (res.success) {
                     setUserData(res.data);
+                    setUserRole(res.data.user_role);
+
+                    // Redirect instructors to /instructor unless they explicitly want student view
+                    if (res.data.user_role === "instructor" && searchParams.get("view") !== "student") {
+                        navigate("/instructor");
+                    }
                 }
             });
         }
-    }, [session, navigate]);
+    }, [session, navigate, searchParams]);
 
     // Fetch user progress stats
     useEffect(() => {
@@ -209,6 +217,15 @@ export default function Dashboard() {
                             </h1>
                         </div>
                         <div className="flex gap-3">
+                            {userRole === "instructor" && (
+                                <button
+                                    onClick={() => navigate("/instructor")}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white rounded-3xl shadow-md px-6 py-3 font-semibold transition-colors flex items-center gap-2"
+                                >
+                                    <GraduationCap className="w-5 h-5" />
+                                    View as Instructor
+                                </button>
+                            )}
                             <div className="bg-white rounded-3xl shadow-md p-6 min-w-[140px] text-center hover:shadow-xl transition-shadow">
                                 <div className="text-4xl font-black text-gray-900 mb-1">{userProgress.streak}</div>
                                 <div className="text-sm font-semibold text-gray-600">Day Streak 🔥</div>
