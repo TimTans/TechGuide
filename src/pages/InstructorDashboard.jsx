@@ -3,93 +3,295 @@ import {
     Clock, ArrowRight, Bell, Users, Lock, Sparkles, BookOpen, UserCheck, TrendingUp, FileText, User
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "../context/AuthContext";
+import { supabase, UserAuth } from "../context/AuthContext";
+import { useEffect, useState } from "react";
+import { getCategoryMetadata } from "../components/AllCourses/utils";
 
-export default function InstructorDashboard({ user }) {
+export default function InstructorDashboard({ user: userProp }) {
     const navigate = useNavigate();
+    const { session } = UserAuth();
+    const user = userProp || session?.user;
+    const [instructorStats, setInstructorStats] = useState({
+        totalStudents: 0,
+        activeCourses: 0,
+        completedSessions: 0,
+        averageRating: null,
+    });
+    const [courses, setCourses] = useState([]);
+    const [students, setStudents] = useState([]);
+    const [recentActivities, setRecentActivities] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
         navigate("/");
     };
 
-    // Mock data for instructor stats
-    const instructorStats = {
-        totalStudents: 42,
-        activeCourses: 6,
-        completedSessions: 128,
-        averageRating: 4.8,
+    // Format time ago
+    const formatTimeAgo = (dateString) => {
+        if (!dateString) return "Recently";
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return "Just now";
+        if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+        if (diffDays === 1) return "Yesterday";
+        if (diffDays < 7) return `${diffDays} days ago`;
+
+        // Format as date if older
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
     };
 
-    const courses = [
-        {
-            id: 1,
-            title: "Email Basics",
-            icon: Mail,
-            description: "Teaching email fundamentals to seniors",
-            students: 15,
-            progress: 75,
-            color: "blue"
-        },
-        {
-            id: 2,
-            title: "Video Calls",
-            icon: Video,
-            description: "Master Zoom, Skype, and FaceTime",
-            students: 12,
-            progress: 60,
-            color: "purple"
-        },
-        {
-            id: 3,
-            title: "Social Media",
-            icon: MessageCircle,
-            description: "Connect with family on Facebook & Instagram",
-            students: 10,
-            progress: 45,
-            color: "pink"
-        },
-        {
-            id: 4,
-            title: "Online Shopping",
-            icon: ShoppingCart,
-            description: "Shop safely on Amazon, eBay, and more",
-            students: 5,
-            progress: 30,
-            color: "emerald"
+    // Redirect to signin if not authenticated
+    useEffect(() => {
+        if (session === null) {
+            navigate("/signin");
         }
-    ];
+    }, [session, navigate]);
 
-    const recentActivities = [
-        {
-            id: 1,
-            title: "New student enrolled: Email Basics",
-            time: "Today at 2:30 PM",
-            icon: UserCheck,
-            color: "text-blue-600 bg-blue-50"
-        },
-        {
-            id: 2,
-            title: "Session completed: Video Calls - Lesson 3",
-            time: "Today at 1:15 PM",
-            icon: CheckCircle,
-            color: "text-emerald-600 bg-emerald-50"
-        },
-        {
-            id: 3,
-            title: "Student achievement: First Week Complete!",
-            time: "Yesterday",
-            icon: Sparkles,
-            color: "text-amber-600 bg-amber-50"
-        }
-    ];
+    useEffect(() => {
+        const fetchInstructorData = async () => {
+            if (!session?.user) {
+                setLoading(false);
+                return;
+            }
 
-    const students = [
-        { id: 1, name: "Mary Johnson", course: "Email Basics", progress: 80, status: "active" },
-        { id: 2, name: "Robert Smith", course: "Video Calls", progress: 60, status: "active" },
-        { id: 3, name: "Patricia Williams", course: "Social Media", progress: 45, status: "active" },
-        { id: 4, name: "James Brown", course: "Online Shopping", progress: 30, status: "active" },
-    ];
+            try {
+                setLoading(true);
+
+                // Fetch all users
+                const { data: allUsersData, error: allUsersError } = await supabase
+                    .from("users")
+                    .select("user_id, first_name, last_name, email, user_role");
+
+                if (allUsersError) {
+                    console.error("Error fetching users:", allUsersError);
+                }
+
+                // Debug: Log all user roles to see actual values
+                console.log("All users and their roles:", allUsersData?.map(u => ({ email: u.email, role: u.user_role })));
+
+                // Filter students - check for any student-like role (case-insensitive)
+                // This handles "Student", "student", or any enum value containing "student"
+                const studentsData = (allUsersData || []).filter(user => {
+                    const role = user.user_role?.toLowerCase() || "";
+                    // Count as student if role includes "student" OR if role is NOT instructor/admin
+                    return role.includes("student") ||
+                        (role !== "instructor" && role !== "admin" && role !== "");
+                });
+
+                const totalStudents = studentsData?.length || 0;
+                console.log("Total students found:", totalStudents);
+
+                // Fetch all categories
+                const { data: categoriesData, error: categoriesError } = await supabase
+                    .from("categories")
+                    .select("category_id, category_name, description")
+                    .order("display_order", { ascending: true });
+
+                if (categoriesError) {
+                    console.error("Error fetching categories:", categoriesError);
+                }
+
+                // Fetch all tutorials
+                const { data: tutorialsData, error: tutorialsError } = await supabase
+                    .from("tutorials")
+                    .select("tutorial_id, category_id, title");
+
+                if (tutorialsError) {
+                    console.error("Error fetching tutorials:", tutorialsError);
+                }
+
+                // Fetch all user progress
+                const { data: progressData, error: progressError } = await supabase
+                    .from("user_progress")
+                    .select("user_id, tutorial_id, status, completed_at, started_at");
+
+                if (progressError) {
+                    console.error("Error fetching progress:", progressError);
+                }
+
+                // Calculate completed sessions
+                const completedSessions = (progressData || []).filter(
+                    p => p.completed_at !== null
+                ).length;
+
+                // Get unique categories that have tutorials
+                const activeCategories = new Set(
+                    (tutorialsData || []).map(t => t.category_id)
+                );
+                const activeCourses = activeCategories.size;
+
+                // Calculate stats per category
+                const coursesWithStats = (categoriesData || []).map(category => {
+                    const categoryTutorials = (tutorialsData || []).filter(
+                        t => t.category_id === category.category_id
+                    );
+                    const categoryTutorialIds = new Set(categoryTutorials.map(t => t.tutorial_id));
+
+                    // Get students who have started any tutorial in this category
+                    const studentsInCategory = new Set(
+                        (progressData || [])
+                            .filter(p => categoryTutorialIds.has(p.tutorial_id))
+                            .map(p => p.user_id)
+                    );
+
+                    // Calculate average progress for this category
+                    let totalProgress = 0;
+                    let studentCount = 0;
+
+                    studentsInCategory.forEach(studentId => {
+                        const studentTutorials = categoryTutorials.length;
+                        const studentCompleted = (progressData || []).filter(
+                            p => p.user_id === studentId &&
+                                categoryTutorialIds.has(p.tutorial_id) &&
+                                p.completed_at !== null
+                        ).length;
+                        const progress = studentTutorials > 0
+                            ? Math.round((studentCompleted / studentTutorials) * 100)
+                            : 0;
+                        totalProgress += progress;
+                        studentCount++;
+                    });
+
+                    const avgProgress = studentCount > 0
+                        ? Math.round(totalProgress / studentCount)
+                        : 0;
+
+                    const metadata = getCategoryMetadata(category.category_id);
+                    return {
+                        id: category.category_id,
+                        title: category.category_name,
+                        icon: metadata.icon,
+                        description: category.description || `Learn about ${category.category_name}`,
+                        students: studentsInCategory.size,
+                        progress: avgProgress,
+                        color: metadata.color
+                    };
+                }).filter(course => course.students > 0 || course.progress > 0); // Only show courses with activity
+
+                setCourses(coursesWithStats);
+
+                // Get recent students with their progress
+                const studentProgressMap = {};
+                (progressData || []).forEach(progress => {
+                    if (!studentProgressMap[progress.user_id]) {
+                        studentProgressMap[progress.user_id] = {
+                            tutorials: new Set(),
+                            completed: 0,
+                            lastActivity: null
+                        };
+                    }
+                    studentProgressMap[progress.user_id].tutorials.add(progress.tutorial_id);
+                    if (progress.completed_at) {
+                        studentProgressMap[progress.user_id].completed++;
+                    }
+
+                    // Track most recent activity (completed_at or started_at)
+                    const activityDate = progress.completed_at || progress.started_at;
+                    if (activityDate) {
+                        const currentLastActivity = studentProgressMap[progress.user_id].lastActivity;
+                        if (!currentLastActivity || new Date(activityDate) > new Date(currentLastActivity)) {
+                            studentProgressMap[progress.user_id].lastActivity = activityDate;
+                        }
+                    }
+                });
+
+                const studentsWithProgress = (studentsData || [])
+                    .map(student => {
+                        const progress = studentProgressMap[student.user_id];
+                        if (!progress) return null;
+
+                        const totalTutorials = (tutorialsData || []).length;
+                        const studentProgress = totalTutorials > 0
+                            ? Math.round((progress.completed / totalTutorials) * 100)
+                            : 0;
+
+                        // Get most recent category they worked on
+                        const studentTutorials = Array.from(progress.tutorials);
+                        const mostRecentTutorial = studentTutorials.length > 0
+                            ? (tutorialsData || []).find(t => t.tutorial_id === studentTutorials[0])
+                            : null;
+                        const mostRecentCategory = mostRecentTutorial
+                            ? (categoriesData || []).find(c => c.category_id === mostRecentTutorial.category_id)
+                            : null;
+
+                        return {
+                            id: student.user_id,
+                            name: `${student.first_name} ${student.last_name}`,
+                            course: mostRecentCategory?.category_name || "Getting Started",
+                            progress: studentProgress,
+                            status: progress.completed > 0 ? "active" : "new",
+                            lastActivity: progress.lastActivity
+                        };
+                    })
+                    .filter(s => s !== null)
+                    .sort((a, b) => {
+                        const dateA = new Date(a.lastActivity || 0);
+                        const dateB = new Date(b.lastActivity || 0);
+                        return dateB - dateA;
+                    })
+                    .slice(0, 10); // Get top 10 most recent
+
+                setStudents(studentsWithProgress);
+
+                // Get recent activities
+                const activities = (progressData || [])
+                    .filter(p => p.completed_at !== null)
+                    .map(progress => {
+                        const tutorial = (tutorialsData || []).find(t => t.tutorial_id === progress.tutorial_id);
+                        const student = (studentsData || []).find(s => s.user_id === progress.user_id);
+                        const category = tutorial
+                            ? (categoriesData || []).find(c => c.category_id === tutorial.category_id)
+                            : null;
+
+                        return {
+                            id: `${progress.user_id}-${progress.tutorial_id}-${progress.completed_at}`,
+                            title: student && tutorial
+                                ? `Completed: ${tutorial.title}`
+                                : "Lesson completed",
+                            time: formatTimeAgo(progress.completed_at),
+                            icon: CheckCircle,
+                            color: "text-emerald-600 bg-emerald-50",
+                            timestamp: progress.completed_at
+                        };
+                    })
+                    .sort((a, b) => {
+                        const dateA = new Date(a.timestamp || 0);
+                        const dateB = new Date(b.timestamp || 0);
+                        return dateB - dateA;
+                    })
+                    .slice(0, 5); // Get 5 most recent
+
+                setRecentActivities(activities);
+
+                // Update stats
+                setInstructorStats({
+                    totalStudents,
+                    activeCourses,
+                    completedSessions,
+                    averageRating: null, // Rating system not implemented yet
+                });
+
+            } catch (error) {
+                console.error("Error fetching instructor data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchInstructorData();
+    }, [session]);
+
+    // Show loading or nothing while checking auth
+    if (session === null) {
+        return null;
+    }
 
     return (
         <div className="min-h-screen bg-linear-to-b from-orange-50 via-orange-50 to-white">
@@ -165,58 +367,67 @@ export default function InstructorDashboard({ user }) {
                                     <ArrowRight className="w-4 h-4" />
                                 </button>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {courses.map((course) => {
-                                    const Icon = course.icon;
-                                    return (
-                                        <div
-                                            key={course.id}
-                                            className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
-                                        >
-                                            <div className="flex items-start justify-between mb-4">
-                                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${course.color === 'blue' ? 'bg-blue-100' :
-                                                    course.color === 'purple' ? 'bg-purple-100' :
-                                                        course.color === 'pink' ? 'bg-pink-100' :
-                                                            'bg-emerald-100'
-                                                    }`}>
-                                                    <Icon className={`w-7 h-7 ${course.color === 'blue' ? 'text-blue-600' :
-                                                        course.color === 'purple' ? 'text-purple-600' :
-                                                            course.color === 'pink' ? 'text-pink-600' :
-                                                                'text-emerald-600'
-                                                        }`} />
+                            {loading ? (
+                                <div className="text-center py-12 text-gray-600">Loading courses...</div>
+                            ) : courses.length === 0 ? (
+                                <div className="text-center py-12 text-gray-600">No courses with student activity yet.</div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {courses.map((course) => {
+                                        const Icon = course.icon;
+                                        const colorClasses = {
+                                            blue: { bg: 'bg-blue-100', text: 'text-blue-600', progress: 'bg-blue-500' },
+                                            purple: { bg: 'bg-purple-100', text: 'text-purple-600', progress: 'bg-purple-500' },
+                                            pink: { bg: 'bg-pink-100', text: 'text-pink-600', progress: 'bg-pink-500' },
+                                            emerald: { bg: 'bg-emerald-100', text: 'text-emerald-600', progress: 'bg-emerald-500' },
+                                            orange: { bg: 'bg-orange-100', text: 'text-orange-600', progress: 'bg-orange-500' },
+                                            indigo: { bg: 'bg-indigo-100', text: 'text-indigo-600', progress: 'bg-indigo-500' },
+                                            red: { bg: 'bg-red-100', text: 'text-red-600', progress: 'bg-red-500' },
+                                            violet: { bg: 'bg-violet-100', text: 'text-violet-600', progress: 'bg-violet-500' },
+                                            rose: { bg: 'bg-rose-100', text: 'text-rose-600', progress: 'bg-rose-500' },
+                                            sky: { bg: 'bg-sky-100', text: 'text-sky-600', progress: 'bg-sky-500' },
+                                            teal: { bg: 'bg-teal-100', text: 'text-teal-600', progress: 'bg-teal-500' },
+                                            cyan: { bg: 'bg-cyan-100', text: 'text-cyan-600', progress: 'bg-cyan-500' }
+                                        };
+                                        const colors = colorClasses[course.color] || colorClasses.blue;
+                                        return (
+                                            <div
+                                                key={course.id}
+                                                className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+                                            >
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colors.bg}`}>
+                                                        <Icon className={`w-7 h-7 ${colors.text}`} />
+                                                    </div>
+                                                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
+                                                        {course.students} Students
+                                                    </span>
                                                 </div>
-                                                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
-                                                    {course.students} Students
-                                                </span>
-                                            </div>
-                                            <h3 className="text-xl font-bold text-gray-900 mb-2">{course.title}</h3>
-                                            <p className="text-gray-600 text-sm mb-4 leading-relaxed">{course.description}</p>
+                                                <h3 className="text-xl font-bold text-gray-900 mb-2">{course.title}</h3>
+                                                <p className="text-gray-600 text-sm mb-4 leading-relaxed">{course.description}</p>
 
-                                            <div className="mb-4">
-                                                <div className="flex justify-between text-xs font-semibold mb-2">
-                                                    <span className="text-gray-600">Average Progress</span>
-                                                    <span className="text-gray-900">{course.progress}%</span>
+                                                <div className="mb-4">
+                                                    <div className="flex justify-between text-xs font-semibold mb-2">
+                                                        <span className="text-gray-600">Average Progress</span>
+                                                        <span className="text-gray-900">{course.progress}%</span>
+                                                    </div>
+                                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full ${colors.progress}`}
+                                                            style={{ width: `${course.progress}%` }}
+                                                        ></div>
+                                                    </div>
                                                 </div>
-                                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full ${course.color === 'blue' ? 'bg-blue-500' :
-                                                            course.color === 'purple' ? 'bg-purple-500' :
-                                                                course.color === 'pink' ? 'bg-pink-500' :
-                                                                    'bg-emerald-500'
-                                                            }`}
-                                                        style={{ width: `${course.progress}%` }}
-                                                    ></div>
-                                                </div>
-                                            </div>
 
-                                            <button className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 group-hover:gap-3">
-                                                Manage Course
-                                                <ArrowRight className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                                <button className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 group-hover:gap-3">
+                                                    Manage Course
+                                                    <ArrowRight className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         {/* Students List */}
@@ -228,51 +439,63 @@ export default function InstructorDashboard({ user }) {
                                     <ArrowRight className="w-4 h-4" />
                                 </button>
                             </div>
-                            <div className="space-y-4">
-                                {students.map((student) => (
-                                    <div key={student.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-linear-to-br from-orange-400 to-rose-400 rounded-full flex items-center justify-center text-white font-bold">
-                                                {student.name.split(' ').map(n => n[0]).join('')}
+                            {loading ? (
+                                <div className="text-center py-12 text-gray-600">Loading students...</div>
+                            ) : students.length === 0 ? (
+                                <div className="text-center py-12 text-gray-600">No students with activity yet.</div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {students.map((student) => (
+                                        <div key={student.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 bg-linear-to-br from-orange-400 to-rose-400 rounded-full flex items-center justify-center text-white font-bold">
+                                                    {student.name.split(' ').map(n => n[0]).join('')}
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold text-gray-900">{student.name}</h3>
+                                                    <p className="text-sm text-gray-600">{student.course}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h3 className="font-semibold text-gray-900">{student.name}</h3>
-                                                <p className="text-sm text-gray-600">{student.course}</p>
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-right">
+                                                    <div className="text-sm font-semibold text-gray-900">{student.progress}%</div>
+                                                    <div className="text-xs text-gray-600">Progress</div>
+                                                </div>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${student.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                    {student.status}
+                                                </span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-right">
-                                                <div className="text-sm font-semibold text-gray-900">{student.progress}%</div>
-                                                <div className="text-xs text-gray-600">Progress</div>
-                                            </div>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${student.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'}`}>
-                                                {student.status}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Recent Activity */}
                         <div className="bg-white rounded-3xl shadow-sm p-8">
                             <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Activity</h2>
-                            <div className="space-y-4">
-                                {recentActivities.map((activity) => {
-                                    const Icon = activity.icon;
-                                    return (
-                                        <div key={activity.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
-                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${activity.color}`}>
-                                                <Icon className="w-6 h-6" />
+                            {loading ? (
+                                <div className="text-center py-12 text-gray-600">Loading activities...</div>
+                            ) : recentActivities.length === 0 ? (
+                                <div className="text-center py-12 text-gray-600">No recent activity.</div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {recentActivities.map((activity) => {
+                                        const Icon = activity.icon;
+                                        return (
+                                            <div key={activity.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
+                                                <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${activity.color}`}>
+                                                    <Icon className="w-6 h-6" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-semibold text-gray-900 mb-1">{activity.title}</h3>
+                                                    <p className="text-sm text-gray-600">{activity.time}</p>
+                                                </div>
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-gray-900 mb-1">{activity.title}</h3>
-                                                <p className="text-sm text-gray-600">{activity.time}</p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -287,7 +510,9 @@ export default function InstructorDashboard({ user }) {
                                         <TrendingUp className="w-5 h-5 text-emerald-600" />
                                         <span className="text-sm font-semibold text-gray-700">Avg. Rating</span>
                                     </div>
-                                    <span className="text-lg font-bold text-gray-900">{instructorStats.averageRating}</span>
+                                    <span className="text-lg font-bold text-gray-900">
+                                        {instructorStats.averageRating !== null ? instructorStats.averageRating.toFixed(1) : 'N/A'}
+                                    </span>
                                 </div>
                                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                                     <div className="flex items-center gap-3">
