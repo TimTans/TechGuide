@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { UserAuth, supabase } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import DashboardNavbar from "../components/Navbar";
@@ -15,6 +15,7 @@ import CourseEditingModal from "../components/CourseEditingModal";
 
 export default function AllCourses() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { session, getUserData } = UserAuth();
     const [allCourses, setAllCourses] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -180,6 +181,20 @@ export default function AllCourses() {
             fetchData();
         }
     }, [session]);
+
+    // Handle category selection from navigation state
+    useEffect(() => {
+        if (location.state?.selectedCategoryId && categories.length > 0 && !selectedCategory) {
+            const categoryToSelect = categories.find(
+                cat => cat.id === location.state.selectedCategoryId
+            );
+            if (categoryToSelect) {
+                setSelectedCategory(categoryToSelect);
+                // Clear the location state to prevent re-selecting on re-renders
+                window.history.replaceState({}, document.title);
+            }
+        }
+    }, [categories, location.state, selectedCategory]);
 
     // Get filtered courses for selected category
     const getFilteredCourses = () => {

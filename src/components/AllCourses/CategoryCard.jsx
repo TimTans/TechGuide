@@ -34,17 +34,16 @@ export default function CategoryCard({ category, onSelect }) {
                         <span className="text-gray-900">{category.completedTutorials} completed</span>
                     )}
                 </div>
-                {hasProgress && (
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-4">
-                        <div
-                            className={`h-full ${colorClasses.progress}`}
-                            style={{ width: `${category.progressPercentage}%` }}
-                        ></div>
-                    </div>
-                )}
+                {/* Always show progress bar */}
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-4">
+                    <div
+                        className={`h-full ${colorClasses.progress}`}
+                        style={{ width: `${category.progressPercentage}%` }}
+                    ></div>
+                </div>
             </div>
             <button className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 group-hover:gap-3">
-                View Category
+                {category.buttonText || 'View Category'}
                 <ChevronRight className="w-5 h-5" />
             </button>
         </div>
