@@ -1,29 +1,37 @@
 import React, { useState } from 'react';
 import { AlertTriangle, Home, ArrowRight, Monitor, Phone } from "lucide-react";
-import { Link } from 'react-router-dom';
+import { Link} from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
+
 
 export default function Safety() {
     const [showPhoneNumber, setShowPhoneNumber] = useState(false);
+    const navigate = useNavigate();
+
 
     // Mock data for alert list
     const activeAlerts = [
         {
-            id: 1,
+           id: 1,
             title: "IRS Phone Scam Warning",
             date: "Published: Today",
-            summary: "The IRS will never call to demand immediate payment via gift card or wire transfer. Hang up and report the call."
+            summary: "The IRS will never call to demand immediate payment via gift card or wire transfer. Hang up and report the call.",
+            link: "/safety/IRSscam"
         },
         {
             id: 2,
             title: "Fake Tech Support Pop-ups",
             date: "Published: 3 Days Ago",
-            summary: "Never give remote access to your computer to someone who called you unexpectedly about a virus."
+            summary: "Never give remote access to your computer to someone who called you unexpectedly about a virus.",
+            link: "/safety/faketech"
+
         },
         {
             id: 3,
             title: "Email Password Reset Scams",
             date: "Published: Last Week",
-            summary: "Be suspicious of 'password reset' emails if you didn't request one. Check the sender's address carefully."
+            summary: "Be suspicious of 'password reset' emails if you didn't request one. Check the sender's address carefully.",
+            link: "/safety/emailreset-scams"
         },
     ];
 
@@ -99,8 +107,8 @@ export default function Safety() {
                                 <span className="text-xs font-medium text-gray-500 shrink-0">{alert.date}</span>
                             </div>
                             <p className="text-gray-600 mb-4 leading-relaxed">{alert.summary}</p>
-
-                            <button className="text-sm font-semibold text-red-600 hover:text-red-700 flex items-center gap-1">
+                            
+                            <button onClick={() => alert.link && navigate(alert.link)} className="text-sm font-semibold text-red-600 hover:text-red-700 flex items-center gap-1">
                                 Read Full Alert
                                 <ArrowRight className="w-4 h-4" />
                             </button>

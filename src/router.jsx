@@ -11,12 +11,16 @@ import About from "./pages/about";
 import Tutorials from "./pages/tutorials";
 import TutorialDetail from "./pages/TutorialDetail";
 import Safety from "./pages/safety";
+import IRSPhoneScam from "./pages/IRSphonescam";
 
 import InstructorDashboard from "./pages/InstructorDashboard";
 import AllStudents from "./pages/AllStudents";
 import Support from "./pages/SupportPage";
 import AdminSignUpPage from "./pages/adminsignup";
 import App from "./App";
+import FakeTech from "./pages/Faketech";
+import EmailPasswordResetScams from "./pages/emailresetscam";
+
 
 
 export const router = createBrowserRouter([
@@ -31,6 +35,13 @@ export const router = createBrowserRouter([
     { path: "/userprofile", element: <UserProfile /> },
     { path: "/about", element: <About /> },
     { path: "/safety", element: <Safety /> },
+    { path: "/safety/IRSscam", element: <IRSPhoneScam /> },
+    { path: "/safety/faketech", element: <FakeTech /> },
+    { path: "/safety/emailreset-scams", element: <EmailPasswordResetScams /> },
+
+
+    
+
     // { path: "/support", element: <Support /> },
     { path: "/instructor", element: <InstructorDashboard /> },
     { path: "/allstudents", element: <AllStudents /> },
