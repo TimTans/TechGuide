@@ -72,9 +72,14 @@ export default function InstructorDashboard({ user: userProp }) {
                     supabase.from("user_progress").select("user_id, tutorial_id, status, completed_at, started_at")
                 ]);
 
-                // Handle errors
+                // Handle errors - check for RLS issues
                 if (allUsersError) {
                     console.error("Error fetching users:", allUsersError);
+                    console.error("RLS Policy Issue? Error code:", allUsersError.code, "Message:", allUsersError.message);
+                    // Common RLS error codes: PGRST116 (permission denied), 42501 (insufficient privilege)
+                    if (allUsersError.code === 'PGRST116' || allUsersError.message?.includes('permission') || allUsersError.message?.includes('policy')) {
+                        console.warn("⚠️ This looks like an RLS policy issue. Instructors need a policy to view all users.");
+                    }
                 }
                 if (categoriesError) {
                     console.error("Error fetching categories:", categoriesError);
@@ -89,6 +94,22 @@ export default function InstructorDashboard({ user: userProp }) {
                 // Process data
                 const studentsData = filterStudents(allUsersData);
                 const totalStudents = studentsData?.length || 0;
+
+                // Debug logging to help diagnose RLS issues
+                if (!allUsersError) {
+                    console.log("✅ Users query successful. Total users fetched:", allUsersData?.length || 0);
+                    console.log("✅ Students filtered:", totalStudents);
+                    if (allUsersData && allUsersData.length > 0) {
+                        const roleCounts = {};
+                        allUsersData.forEach(u => {
+                            const role = u.user_role || 'null';
+                            roleCounts[role] = (roleCounts[role] || 0) + 1;
+                        });
+                        console.log("User roles breakdown:", roleCounts);
+                    }
+                } else {
+                    console.warn("❌ Users query failed - may be RLS policy issue");
+                }
 
                 setCategories(categoriesData || []);
 
@@ -359,20 +380,6 @@ export default function InstructorDashboard({ user: userProp }) {
 
                     {/* Right Column - Sidebar */}
                     <div className="space-y-6">
-                        {/* Quick Stats */}
-                        <div className="bg-white rounded-3xl shadow-sm p-6">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Stats</h3>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                                    <div className="flex items-center gap-3">
-                                        <CheckCircle className="w-5 h-5 text-blue-600" />
-                                        <span className="text-sm font-semibold text-gray-700">Sessions</span>
-                                    </div>
-                                    <span className="text-lg font-bold text-gray-900">{instructorStats.completedSessions}</span>
-                                </div>
-                            </div>
-                        </div>
-
                         {/* Quick Actions */}
                         <div className="bg-white rounded-3xl shadow-sm p-6">
                             <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>

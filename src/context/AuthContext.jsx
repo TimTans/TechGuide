@@ -48,6 +48,7 @@ export const AuthContextProvider = ({ children }) => {
         }
 
         // The database trigger will automatically create the user record
+        // No need to manually insert here - the trigger handles it
         return { success: true, data }
     }
 

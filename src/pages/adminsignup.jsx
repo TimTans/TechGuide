@@ -10,7 +10,7 @@ function AdminSignUpPage() {
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [userRole, setUserRole] = useState("Student");
+    const [userRole, setUserRole] = useState("student");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
@@ -46,7 +46,7 @@ function AdminSignUpPage() {
             setLastName("");
             setEmail("");
             setPassword("");
-            setUserRole("Student");
+            setUserRole("student");
 
             // Start countdown
             let timeLeft = 5;
@@ -196,8 +196,8 @@ function AdminSignUpPage() {
                                 required
                                 className="w-full flex h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-base ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                <option value="Student">Student</option>
-                                <option value="Instructor">Instructor</option>
+                                <option value="student">Student</option>
+                                <option value="instructor">Instructor</option>
                             </select>
                         </div>
 
