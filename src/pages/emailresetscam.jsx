@@ -1,16 +1,22 @@
-import { AlertTriangle, Mail, Link as LinkIcon, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Mail, Link as LinkIcon, ShieldCheck, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function EmailPasswordResetScams() {
   return (
     <div className="min-h-screen bg-linear-to-b from-orange-50 via-orange-50 to-white">
       <main className="max-w-4xl mx-auto px-6 lg:px-8 py-12 pb-20">
-        <Link
-          to="/safety"
-          className="text-sm font-semibold text-gray-600 hover:text-gray-900"
-        >
-          ← Back to Safety Alerts
-        </Link>
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-4 mb-8">
+          <Link to="/" className="text-sm font-semibold text-gray-500 hover:text-gray-900 flex items-center gap-1">
+            <Home className="w-4 h-4" /> Home
+          </Link>
+          <span className="text-gray-400">/</span>
+          <Link to="/safety" className="text-sm font-semibold text-gray-500 hover:text-gray-900">
+            Safety Alert Center
+          </Link>
+          <span className="text-gray-400">/</span>
+          <span className="text-sm font-semibold text-emerald-700">Email Password Reset Scams</span>
+        </div>
 
         <div className="flex items-center gap-4 mt-8 mb-6">
           <AlertTriangle className="w-10 h-10 text-red-600" />
