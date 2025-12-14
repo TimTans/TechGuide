@@ -1,95 +1,211 @@
 import {
-    Monitor, LogOut, Mail, Video, MessageCircle, ShoppingCart, Phone, AlertTriangle, CheckCircle,
-    Clock, ArrowRight, Bell, Users, Lock, Sparkles, BookOpen, UserCheck, TrendingUp, FileText
+    Monitor, LogOut, Bell, BookOpen, FileText, Phone, Lock,
+    Clock, ArrowRight, User, CheckCircle, ChevronDown, Settings
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "../context/AuthContext";
+import { supabase, UserAuth } from "../context/AuthContext";
+import { useEffect, useState, useRef } from "react";
+import CreateCourseModal from "../components/CreateCourseModal";
+import CourseCard from "../components/InstructorDashboard/CourseCard";
+import StudentCard from "../components/InstructorDashboard/StudentCard";
+import ActivityCard from "../components/InstructorDashboard/ActivityCard";
+import {
+    filterStudents,
+    calculateCourseStats,
+    buildStudentProgressMap,
+    formatStudentsWithProgress,
+    formatRecentActivities
+} from "../utils/instructorDataHelpers";
 
-export default function InstructorDashboard({ user }) {
+export default function InstructorDashboard({ user: userProp }) {
     const navigate = useNavigate();
+    const { session } = UserAuth();
+    const user = userProp || session?.user;
+
+    const [instructorStats, setInstructorStats] = useState({
+        totalStudents: 0,
+        activeCourses: 0,
+        completedSessions: 0,
+    });
+    const [courses, setCourses] = useState([]);
+    const [students, setStudents] = useState([]);
+    const [recentActivities, setRecentActivities] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [categories, setCategories] = useState([]);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
         navigate("/");
     };
 
-    // Mock data for instructor stats
-    const instructorStats = {
-        totalStudents: 42,
-        activeCourses: 6,
-        completedSessions: 128,
-        averageRating: 4.8,
+    // Redirect to signin if not authenticated
+    useEffect(() => {
+        if (session === null) {
+            navigate("/signin");
+        }
+    }, [session, navigate]);
+
+    useEffect(() => {
+        const fetchInstructorData = async () => {
+            if (!session?.user) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                setLoading(true);
+
+                // Fetch all data in parallel
+                const [
+                    { data: allUsersData, error: allUsersError },
+                    { data: categoriesData, error: categoriesError },
+                    { data: tutorialsData, error: tutorialsError },
+                    { data: progressData, error: progressError }
+                ] = await Promise.all([
+                    supabase.from("users").select("user_id, first_name, last_name, email, user_role"),
+                    supabase.from("categories").select("category_id, category_name, description").order("display_order", { ascending: true }),
+                    supabase.from("tutorials").select("tutorial_id, category_id, title"),
+                    supabase.from("user_progress").select("user_id, tutorial_id, status, completed_at, started_at")
+                ]);
+
+                // Handle errors - check for RLS issues
+                if (allUsersError) {
+                    console.error("Error fetching users:", allUsersError);
+                    console.error("RLS Policy Issue? Error code:", allUsersError.code, "Message:", allUsersError.message);
+                    // Common RLS error codes: PGRST116 (permission denied), 42501 (insufficient privilege)
+                    if (allUsersError.code === 'PGRST116' || allUsersError.message?.includes('permission') || allUsersError.message?.includes('policy')) {
+                        console.warn("⚠️ This looks like an RLS policy issue. Instructors need a policy to view all users.");
+                    }
+                }
+                if (categoriesError) {
+                    console.error("Error fetching categories:", categoriesError);
+                }
+                if (tutorialsError) {
+                    console.error("Error fetching tutorials:", tutorialsError);
+                }
+                if (progressError) {
+                    console.error("Error fetching progress:", progressError);
+                }
+
+                // Process data
+                const studentsData = filterStudents(allUsersData);
+                const totalStudents = studentsData?.length || 0;
+
+                // Debug logging to help diagnose RLS issues
+                if (!allUsersError) {
+                    console.log("✅ Users query successful. Total users fetched:", allUsersData?.length || 0);
+                    console.log("✅ Students filtered:", totalStudents);
+                    if (allUsersData && allUsersData.length > 0) {
+                        const roleCounts = {};
+                        allUsersData.forEach(u => {
+                            const role = u.user_role || 'null';
+                            roleCounts[role] = (roleCounts[role] || 0) + 1;
+                        });
+                        console.log("User roles breakdown:", roleCounts);
+                    }
+                } else {
+                    console.warn("❌ Users query failed - may be RLS policy issue");
+                }
+
+                setCategories(categoriesData || []);
+
+                // Calculate completed sessions
+                const completedSessions = (progressData || []).filter(
+                    p => p.completed_at !== null
+                ).length;
+
+                // Calculate course stats
+                const coursesWithStats = calculateCourseStats(
+                    categoriesData,
+                    tutorialsData,
+                    progressData
+                );
+                setCourses(coursesWithStats);
+
+                // Count total number of lessons (tutorials)
+                const activeCourses = (tutorialsData || []).length;
+
+                // Process student data
+                const studentProgressMap = buildStudentProgressMap(progressData);
+                const studentsWithProgress = formatStudentsWithProgress(
+                    studentsData,
+                    studentProgressMap,
+                    tutorialsData,
+                    categoriesData
+                );
+                setStudents(studentsWithProgress);
+
+                // Process recent activities
+                const activities = formatRecentActivities(
+                    progressData,
+                    tutorialsData,
+                    studentsData,
+                    categoriesData
+                );
+                setRecentActivities(activities);
+
+                // Update stats
+                setInstructorStats({
+                    totalStudents,
+                    activeCourses,
+                    completedSessions,
+                });
+
+            } catch (error) {
+                console.error("Error fetching instructor data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchInstructorData();
+    }, [session, refreshTrigger]);
+
+    // Handle clicking outside dropdown to close it
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+
+        if (isDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isDropdownOpen]);
+
+    const handleCreateCourse = async (courseData) => {
+        try {
+            const { error } = await supabase
+                .from('tutorials')
+                .insert([courseData]);
+
+            if (error) {
+                console.error('Error creating course:', error);
+                alert('Failed to create course. Please try again.');
+            } else {
+                setIsCreateModalOpen(false);
+                // Trigger data refresh
+                setRefreshTrigger(prev => prev + 1);
+            }
+        } catch (error) {
+            console.error('Error creating course:', error);
+            alert('Failed to create course. Please try again.');
+        }
     };
 
-    const courses = [
-        {
-            id: 1,
-            title: "Email Basics",
-            icon: Mail,
-            description: "Teaching email fundamentals to seniors",
-            students: 15,
-            progress: 75,
-            color: "blue"
-        },
-        {
-            id: 2,
-            title: "Video Calls",
-            icon: Video,
-            description: "Master Zoom, Skype, and FaceTime",
-            students: 12,
-            progress: 60,
-            color: "purple"
-        },
-        {
-            id: 3,
-            title: "Social Media",
-            icon: MessageCircle,
-            description: "Connect with family on Facebook & Instagram",
-            students: 10,
-            progress: 45,
-            color: "pink"
-        },
-        {
-            id: 4,
-            title: "Online Shopping",
-            icon: ShoppingCart,
-            description: "Shop safely on Amazon, eBay, and more",
-            students: 5,
-            progress: 30,
-            color: "emerald"
-        }
-    ];
-
-    const recentActivities = [
-        {
-            id: 1,
-            title: "New student enrolled: Email Basics",
-            time: "Today at 2:30 PM",
-            icon: UserCheck,
-            color: "text-blue-600 bg-blue-50"
-        },
-        {
-            id: 2,
-            title: "Session completed: Video Calls - Lesson 3",
-            time: "Today at 1:15 PM",
-            icon: CheckCircle,
-            color: "text-emerald-600 bg-emerald-50"
-        },
-        {
-            id: 3,
-            title: "Student achievement: First Week Complete!",
-            time: "Yesterday",
-            icon: Sparkles,
-            color: "text-amber-600 bg-amber-50"
-        }
-    ];
-
-    const students = [
-        { id: 1, name: "Mary Johnson", course: "Email Basics", progress: 80, status: "active" },
-        { id: 2, name: "Robert Smith", course: "Video Calls", progress: 60, status: "active" },
-        { id: 3, name: "Patricia Williams", course: "Social Media", progress: 45, status: "active" },
-        { id: 4, name: "James Brown", course: "Online Shopping", progress: 30, status: "active" },
-    ];
+    // Show loading or nothing while checking auth
+    if (session === null) {
+        return null;
+    }
 
     return (
         <div className="min-h-screen bg-linear-to-b from-orange-50 via-orange-50 to-white">
@@ -102,17 +218,56 @@ export default function InstructorDashboard({ user }) {
                             <span className="text-xl font-bold text-gray-900">TECHGUIDE</span>
                         </Link>
                         <div className="flex items-center gap-4">
-                            <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <Bell className="w-6 h-6 text-gray-700" />
-                                <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white">3</span>
-                            </button>
-                            <button
-                                onClick={handleSignOut}
-                                className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors text-sm font-semibold"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                Sign Out
-                            </button>
+                            {/* User Profile Dropdown */}
+                            <div className="relative" ref={dropdownRef}>
+                                <button
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors text-sm font-semibold"
+                                >
+                                    <User className="w-5 h-5 text-gray-700" />
+                                    <ChevronDown className={`w-4 h-4 text-gray-700 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {/* Dropdown Menu */}
+                                {isDropdownOpen && (
+                                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                                        <button
+                                            onClick={() => {
+                                                navigate("/userprofile");
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                                        >
+                                            <User className="w-5 h-5 text-gray-700" />
+                                            <span className="text-sm font-medium text-gray-700">User Profile</span>
+                                        </button>
+
+                                        <button
+                                            onClick={() => {
+                                                navigate("/settings");
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                                        >
+                                            <Settings className="w-5 h-5 text-gray-700" />
+                                            <span className="text-sm font-medium text-gray-700">Settings</span>
+                                        </button>
+
+                                        <div className="border-t border-gray-200 my-2"></div>
+
+                                        <button
+                                            onClick={() => {
+                                                handleSignOut();
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-left"
+                                        >
+                                            <LogOut className="w-5 h-5 text-red-600" />
+                                            <span className="text-sm font-medium text-red-600">Sign Out</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -133,6 +288,13 @@ export default function InstructorDashboard({ user }) {
                             )}
                         </div>
                         <div className="flex gap-3">
+                            <button
+                                onClick={() => navigate("/dashboard?view=student")}
+                                className="bg-blue-500 hover:bg-blue-600 text-white rounded-3xl shadow-md px-6 py-3 font-semibold transition-colors flex items-center gap-2"
+                            >
+                                <User className="w-5 h-5" />
+                                View as Student
+                            </button>
                             <div className="bg-white rounded-3xl shadow-md p-6 min-w-[140px] text-center hover:shadow-xl transition-shadow">
                                 <div className="text-4xl font-black text-gray-900 mb-1">{instructorStats.totalStudents}</div>
                                 <div className="text-sm font-semibold text-gray-600">Total Students</div>
@@ -153,160 +315,85 @@ export default function InstructorDashboard({ user }) {
                         <div>
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-3xl font-black text-gray-900">Your Courses</h2>
-                                <button className="text-gray-600 hover:text-gray-900 font-semibold text-sm flex items-center gap-1">
+                                <button
+                                    onClick={() => navigate("/allcourses")}
+                                    className="text-gray-600 hover:text-gray-900 font-semibold text-sm flex items-center gap-1"
+                                >
                                     Manage All
                                     <ArrowRight className="w-4 h-4" />
                                 </button>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {courses.map((course) => {
-                                    const Icon = course.icon;
-                                    return (
-                                        <div
-                                            key={course.id}
-                                            className="bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer group"
-                                        >
-                                            <div className="flex items-start justify-between mb-4">
-                                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${course.color === 'blue' ? 'bg-blue-100' :
-                                                    course.color === 'purple' ? 'bg-purple-100' :
-                                                        course.color === 'pink' ? 'bg-pink-100' :
-                                                            'bg-emerald-100'
-                                                    }`}>
-                                                    <Icon className={`w-7 h-7 ${course.color === 'blue' ? 'text-blue-600' :
-                                                        course.color === 'purple' ? 'text-purple-600' :
-                                                            course.color === 'pink' ? 'text-pink-600' :
-                                                                'text-emerald-600'
-                                                        }`} />
-                                                </div>
-                                                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold">
-                                                    {course.students} Students
-                                                </span>
-                                            </div>
-                                            <h3 className="text-xl font-bold text-gray-900 mb-2">{course.title}</h3>
-                                            <p className="text-gray-600 text-sm mb-4 leading-relaxed">{course.description}</p>
-
-                                            <div className="mb-4">
-                                                <div className="flex justify-between text-xs font-semibold mb-2">
-                                                    <span className="text-gray-600">Average Progress</span>
-                                                    <span className="text-gray-900">{course.progress}%</span>
-                                                </div>
-                                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full ${course.color === 'blue' ? 'bg-blue-500' :
-                                                            course.color === 'purple' ? 'bg-purple-500' :
-                                                                course.color === 'pink' ? 'bg-pink-500' :
-                                                                    'bg-emerald-500'
-                                                            }`}
-                                                        style={{ width: `${course.progress}%` }}
-                                                    ></div>
-                                                </div>
-                                            </div>
-
-                                            <button className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 group-hover:gap-3">
-                                                Manage Course
-                                                <ArrowRight className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            {loading ? (
+                                <div className="text-center py-12 text-gray-600">Loading courses...</div>
+                            ) : courses.length === 0 ? (
+                                <div className="text-center py-12 text-gray-600">No courses available yet.</div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {courses.map((course) => (
+                                        <CourseCard key={course.id} course={course} />
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Students List */}
                         <div className="bg-white rounded-3xl shadow-sm p-8">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-bold text-gray-900">Recent Students</h2>
-                                <button className="text-gray-600 hover:text-gray-900 font-semibold text-sm flex items-center gap-1">
+                                <button
+                                    onClick={() => navigate("/allstudents")}
+                                    className="text-gray-600 hover:text-gray-900 font-semibold text-sm flex items-center gap-1"
+                                >
                                     View All
                                     <ArrowRight className="w-4 h-4" />
                                 </button>
                             </div>
-                            <div className="space-y-4">
-                                {students.map((student) => (
-                                    <div key={student.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-linear-to-br from-orange-400 to-rose-400 rounded-full flex items-center justify-center text-white font-bold">
-                                                {student.name.split(' ').map(n => n[0]).join('')}
-                                            </div>
-                                            <div>
-                                                <h3 className="font-semibold text-gray-900">{student.name}</h3>
-                                                <p className="text-sm text-gray-600">{student.course}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-right">
-                                                <div className="text-sm font-semibold text-gray-900">{student.progress}%</div>
-                                                <div className="text-xs text-gray-600">Progress</div>
-                                            </div>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${student.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'}`}>
-                                                {student.status}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                            {loading ? (
+                                <div className="text-center py-12 text-gray-600">Loading students...</div>
+                            ) : students.length === 0 ? (
+                                <div className="text-center py-12 text-gray-600">No students with activity yet.</div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {students.map((student) => (
+                                        <StudentCard key={student.id} student={student} />
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Recent Activity */}
                         <div className="bg-white rounded-3xl shadow-sm p-8">
                             <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Activity</h2>
-                            <div className="space-y-4">
-                                {recentActivities.map((activity) => {
-                                    const Icon = activity.icon;
-                                    return (
-                                        <div key={activity.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
-                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${activity.color}`}>
-                                                <Icon className="w-6 h-6" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-gray-900 mb-1">{activity.title}</h3>
-                                                <p className="text-sm text-gray-600">{activity.time}</p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            {loading ? (
+                                <div className="text-center py-12 text-gray-600">Loading activities...</div>
+                            ) : recentActivities.length === 0 ? (
+                                <div className="text-center py-12 text-gray-600">No recent activity.</div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {recentActivities.map((activity) => (
+                                        <ActivityCard key={activity.id} activity={activity} />
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Right Column - Sidebar */}
                     <div className="space-y-6">
-                        {/* Quick Stats */}
-                        <div className="bg-white rounded-3xl shadow-sm p-6">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Stats</h3>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                                    <div className="flex items-center gap-3">
-                                        <TrendingUp className="w-5 h-5 text-emerald-600" />
-                                        <span className="text-sm font-semibold text-gray-700">Avg. Rating</span>
-                                    </div>
-                                    <span className="text-lg font-bold text-gray-900">{instructorStats.averageRating}</span>
-                                </div>
-                                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                                    <div className="flex items-center gap-3">
-                                        <CheckCircle className="w-5 h-5 text-blue-600" />
-                                        <span className="text-sm font-semibold text-gray-700">Sessions</span>
-                                    </div>
-                                    <span className="text-lg font-bold text-gray-900">{instructorStats.completedSessions}</span>
-                                </div>
-                            </div>
-                        </div>
-
                         {/* Quick Actions */}
                         <div className="bg-white rounded-3xl shadow-sm p-6">
                             <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
                             <div className="space-y-3">
-                                <button className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
+                                <button
+                                    onClick={() => setIsCreateModalOpen(true)}
+                                    className="w-full py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                                >
                                     <BookOpen className="w-5 h-5" />
                                     Create New Course
                                 </button>
                                 <button className="w-full py-3 bg-emerald-500 text-white rounded-full font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
                                     <FileText className="w-5 h-5" />
                                     Add Lesson Content
-                                </button>
-                                <button className="w-full py-3 bg-blue-500 text-white rounded-full font-semibold hover:bg-blue-600 transition-colors flex items-center justify-center gap-2">
-                                    <Users className="w-5 h-5" />
-                                    Manage Students
                                 </button>
                             </div>
                         </div>
@@ -341,7 +428,12 @@ export default function InstructorDashboard({ user }) {
                     </div>
                 </div>
             </main>
+            <CreateCourseModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                categories={categories}
+                onSubmit={handleCreateCourse}
+            />
         </div>
     );
-};
-
+}

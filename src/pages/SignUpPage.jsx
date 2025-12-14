@@ -10,7 +10,6 @@ function SignUpPage() {
     const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [userRole, setUserRole] = useState("Student")
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
@@ -26,7 +25,8 @@ function SignUpPage() {
         setError("");
         setSuccessMessage("");
 
-        const result = await signUpNewUser(email, password, firstName, lastName, userRole);
+        // Regular signup always uses "student" role
+        const result = await signUpNewUser(email, password, firstName, lastName, "student");
 
         if (result.success) {
             setSuccessMessage("Account created successfully! Please check your email to verify your account before signing in.");
@@ -36,7 +36,6 @@ function SignUpPage() {
             setLastName("");
             setEmail("");
             setPassword("");
-            setUserRole("Student")
 
             // Start countdown and redirect after 10 seconds
             let timeLeft = 10;

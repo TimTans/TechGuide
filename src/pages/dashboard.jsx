@@ -1,18 +1,21 @@
 import {
     Mail, Video, MessageCircle, ShoppingCart, Phone, AlertTriangle, CheckCircle,
-    Clock, ArrowRight, Users, Lock, Sparkles
+    Clock, ArrowRight, Users, Lock, Sparkles, GraduationCap
 } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { UserAuth, supabase } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import DashboardNavbar from "../components/Navbar";
 import UserCourses from "../components/UserCourses";
+import { toEasternDateString, getTodayEastern, getYesterdayEastern, getDateEastern } from "../utils/dateHelpers";
 
 export default function Dashboard() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { session, getUserData } = UserAuth();
     const user = session?.user;
     const [userData, setUserData] = useState(null);
+    const [userRole, setUserRole] = useState(null);
     const [userProgress, setUserProgress] = useState({
         completedLessons: 0,
         totalLessons: 0,
@@ -28,10 +31,16 @@ export default function Dashboard() {
             getUserData().then((res) => {
                 if (res.success) {
                     setUserData(res.data);
+                    setUserRole(res.data.user_role);
+
+                    // Redirect instructors to /instructor unless they explicitly want student view
+                    if (res.data.user_role === "instructor" && searchParams.get("view") !== "student") {
+                        navigate("/instructor");
+                    }
                 }
             });
         }
-    }, [session, navigate]);
+    }, [session, navigate, searchParams]);
 
     // Fetch user progress stats
     useEffect(() => {
@@ -68,15 +77,60 @@ export default function Dashboard() {
                     p => p.completed_at !== null
                 ).length;
 
-                // Calculate streak (simplified - you can enhance this later)
-                // For now, we'll use a simple calculation based on recent activity
-                const recentProgress = (progressData || []).filter(p => {
-                    if (!p.completed_at) return false;
-                    const completedDate = new Date(p.completed_at);
-                    const daysSince = (Date.now() - completedDate.getTime()) / (1000 * 60 * 60 * 24);
-                    return daysSince <= 7; // Active in last 7 days
-                });
-                const streak = Math.min(recentProgress.length, 7); // Cap at 7 for now
+                // Calculate day streak - consecutive days with at least one completed lesson
+                // Uses Eastern Time Zone for all date calculations
+                const calculateStreak = () => {
+                    if (!progressData || progressData.length === 0) return 0;
+
+                    // Get all unique dates (YYYY-MM-DD format) when lessons were completed
+                    // Convert to Eastern time zone
+                    const completedDates = new Set();
+                    progressData.forEach(p => {
+                        if (p.completed_at) {
+                            const easternDate = toEasternDateString(p.completed_at);
+                            completedDates.add(easternDate);
+                        }
+                    });
+
+                    if (completedDates.size === 0) return 0;
+
+                    // Get today's and yesterday's date strings in Eastern time zone
+                    const todayStr = getTodayEastern();
+                    const yesterdayStr = getYesterdayEastern();
+
+                    // Check if there's activity today or yesterday
+                    // If the most recent activity is more than 1 day ago, streak is broken
+                    const allDates = Array.from(completedDates).sort().reverse();
+                    const mostRecentDate = allDates[0];
+
+                    // If most recent activity is before yesterday, streak is 0
+                    if (mostRecentDate < yesterdayStr) return 0;
+
+                    // Start counting from today or yesterday (whichever has activity)
+                    let daysAgo = 0;
+                    if (!completedDates.has(todayStr)) {
+                        daysAgo = 1; // Start from yesterday if no activity today
+                    }
+
+                    let streak = 0;
+
+                    // Count consecutive days backwards
+                    while (true) {
+                        const checkDateStr = getDateEastern(daysAgo);
+
+                        if (completedDates.has(checkDateStr)) {
+                            streak++;
+                            daysAgo++;
+                        } else {
+                            // Streak broken - no activity on this day
+                            break;
+                        }
+                    }
+
+                    return streak;
+                };
+
+                const streak = calculateStreak();
 
                 setUserProgress({
                     completedLessons: completedTutorials,
@@ -144,6 +198,15 @@ export default function Dashboard() {
                             </h1>
                         </div>
                         <div className="flex gap-3">
+                            {userRole === "instructor" && (
+                                <button
+                                    onClick={() => navigate("/instructor")}
+                                    className="bg-blue-500 hover:bg-blue-600 text-white rounded-3xl shadow-md px-6 py-3 font-semibold transition-colors flex items-center gap-2"
+                                >
+                                    <GraduationCap className="w-5 h-5" />
+                                    View as Instructor
+                                </button>
+                            )}
                             <div className="bg-white rounded-3xl shadow-md p-6 min-w-[140px] text-center hover:shadow-xl transition-shadow">
                                 <div className="text-4xl font-black text-gray-900 mb-1">{userProgress.streak}</div>
                                 <div className="text-sm font-semibold text-gray-600">Day Streak 🔥</div>
