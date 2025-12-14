@@ -338,7 +338,10 @@ export default function Dashboard() {
                                     <span className="text-xs font-bold text-gray-700">+52</span>
                                 </div>
                             </div>
-                            <button className="text-sm font-semibold text-gray-900 hover:text-gray-700 flex items-center gap-1">
+                            <button
+                                onClick={() => navigate("/community")}
+                                className="text-sm font-semibold text-gray-900 hover:text-gray-700 flex items-center gap-1"
+>
                                 Join Community
                                 <ArrowRight className="w-4 h-4" />
                             </button>

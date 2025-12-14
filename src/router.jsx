@@ -20,6 +20,7 @@ import AdminSignUpPage from "./pages/adminsignup";
 import App from "./App";
 import FakeTech from "./pages/Faketech";
 import EmailPasswordResetScams from "./pages/emailresetscam";
+import Community from "./pages/Community";
 
 
 
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
     { path: "/safety/IRSscam", element: <IRSPhoneScam /> },
     { path: "/safety/faketech", element: <FakeTech /> },
     { path: "/safety/emailreset-scams", element: <EmailPasswordResetScams /> },
+    { path: "/community", element: <Community /> },
 
 
     
