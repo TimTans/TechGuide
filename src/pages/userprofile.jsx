@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserAuth } from "../context/AuthContext";
+import { UserAuth, supabase } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
 
 export default function UserProfile() {
@@ -13,17 +13,325 @@ export default function UserProfile() {
     const { session, getUserData } = UserAuth();
     const [userData, setUserData] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
+    const [profileStats, setProfileStats] = useState({
+        coursesCompleted: 0,
+        hoursSpent: 0,
+        currentStreak: 0,
+        totalPoints: 0,
+        joinDate: "",
+        rank: "Beginner"
+    });
+    const [achievements, setAchievements] = useState([]);
+    const [activeCourses, setActiveCourses] = useState([]);
+    const [learningStats, setLearningStats] = useState([]);
+    const [weeklyActivity, setWeeklyActivity] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Redirect to signin if not authenticated
+    // Fetch user data and profile stats
     useEffect(() => {
-        if (session === null) {
-            navigate("/signin");
-        } else if (session?.user) {
-            getUserData().then((res) => {
-                if (res.success) {
-                    setUserData(res.data);
+        const fetchUserProfile = async () => {
+            if (session === null) {
+                navigate("/signin");
+                return;
+            }
+
+            if (!session?.user) return;
+
+            try {
+                setLoading(true);
+                const userId = session.user.id;
+
+                // Fetch user data
+                const userRes = await getUserData();
+                if (userRes.success) {
+                    setUserData(userRes.data);
                 }
-            });
+
+                // Fetch all tutorials with their durations
+                const { data: tutorialsData, error: tutorialsError } = await supabase
+                    .from("tutorials")
+                    .select("tutorial_id, estimated_duration, category_id, title");
+
+                if (tutorialsError) {
+                    console.error("Error fetching tutorials:", tutorialsError);
+                }
+
+                // Fetch user progress
+                const { data: progressData, error: progressError } = await supabase
+                    .from("user_progress")
+                    .select("tutorial_id, completed_at, started_at, status")
+                    .eq("user_id", userId);
+
+                if (progressError) {
+                    console.error("Error fetching progress:", progressError);
+                }
+
+                // Calculate completed tutorials
+                const completedProgress = (progressData || []).filter(
+                    p => p.completed_at !== null
+                );
+
+                // Calculate hours spent from completed tutorials
+                const completedTutorialIds = new Set(completedProgress.map(p => p.tutorial_id));
+                const totalMinutes = (tutorialsData || [])
+                    .filter(t => completedTutorialIds.has(t.tutorial_id))
+                    .reduce((sum, t) => sum + (t.estimated_duration || 0), 0);
+                const hoursSpent = Math.round((totalMinutes / 60) * 10) / 10; // Round to 1 decimal
+
+                // Calculate streak (same logic as dashboard)
+                const calculateStreak = () => {
+                    if (!progressData || progressData.length === 0) return 0;
+
+                    const completedDates = new Set();
+                    completedProgress.forEach(p => {
+                        if (p.completed_at) {
+                            const date = new Date(p.completed_at);
+                            const year = date.getUTCFullYear();
+                            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                            const day = String(date.getUTCDate()).padStart(2, '0');
+                            completedDates.add(`${year}-${month}-${day}`);
+                        }
+                    });
+
+                    if (completedDates.size === 0) return 0;
+
+                    const today = new Date();
+                    const todayYear = today.getUTCFullYear();
+                    const todayMonth = String(today.getUTCMonth() + 1).padStart(2, '0');
+                    const todayDay = String(today.getUTCDate()).padStart(2, '0');
+                    const todayStr = `${todayYear}-${todayMonth}-${todayDay}`;
+
+                    const yesterday = new Date(today);
+                    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+                    const yesterdayYear = yesterday.getUTCFullYear();
+                    const yesterdayMonth = String(yesterday.getUTCMonth() + 1).padStart(2, '0');
+                    const yesterdayDay = String(yesterday.getUTCDate()).padStart(2, '0');
+                    const yesterdayStr = `${yesterdayYear}-${yesterdayMonth}-${yesterdayDay}`;
+
+                    const allDates = Array.from(completedDates).sort().reverse();
+                    const mostRecentDate = allDates[0];
+
+                    if (mostRecentDate < yesterdayStr) return 0;
+
+                    let checkDate = new Date(today);
+                    checkDate.setUTCHours(0, 0, 0, 0);
+
+                    if (!completedDates.has(todayStr)) {
+                        checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+                    }
+
+                    let streak = 0;
+                    while (true) {
+                        const year = checkDate.getUTCFullYear();
+                        const month = String(checkDate.getUTCMonth() + 1).padStart(2, '0');
+                        const day = String(checkDate.getUTCDate()).padStart(2, '0');
+                        const dateStr = `${year}-${month}-${day}`;
+
+                        if (completedDates.has(dateStr)) {
+                            streak++;
+                            checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+                        } else {
+                            break;
+                        }
+                    }
+
+                    return streak;
+                };
+
+                const currentStreak = calculateStreak();
+
+                // Calculate total points (1 point per completed lesson, bonus for streaks)
+                const totalPoints = completedProgress.length * 10 + (currentStreak * 5);
+
+                // Determine rank based on points
+                const getRank = (points) => {
+                    if (points >= 1000) return "Master Learner";
+                    if (points >= 500) return "Gold Learner";
+                    if (points >= 250) return "Silver Learner";
+                    if (points >= 100) return "Bronze Learner";
+                    return "Beginner";
+                };
+
+                // Get join date from auth user's created_at
+                const joinDate = session.user.created_at
+                    ? new Date(session.user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+                    : "Recently";
+
+                // Calculate active courses (started but not completed)
+                const activeProgress = (progressData || []).filter(
+                    p => p.started_at !== null && p.completed_at === null
+                );
+
+                const activeCourseIds = new Set(activeProgress.map(p => p.tutorial_id));
+                const activeCoursesData = (tutorialsData || [])
+                    .filter(t => activeCourseIds.has(t.tutorial_id))
+                    .map(tutorial => {
+                        const progress = activeProgress.find(p => p.tutorial_id === tutorial.tutorial_id);
+
+                        // For individual tutorials, progress is 0% if not completed, 100% if completed
+                        // Since these are active (started but not completed), show 0% or calculate based on category
+                        // For simplicity, we'll show 0% for individual tutorials
+                        const progressPercent = 0;
+
+                        // Calculate last accessed time
+                        const lastAccessed = progress?.started_at
+                            ? new Date(progress.started_at)
+                            : null;
+                        const now = new Date();
+                        let lastAccessedText = "Recently";
+                        if (lastAccessed) {
+                            const hoursAgo = Math.floor((now - lastAccessed) / (1000 * 60 * 60));
+                            if (hoursAgo < 1) lastAccessedText = "Just now";
+                            else if (hoursAgo < 24) lastAccessedText = `${hoursAgo} hour${hoursAgo > 1 ? 's' : ''} ago`;
+                            else {
+                                const daysAgo = Math.floor(hoursAgo / 24);
+                                lastAccessedText = daysAgo === 1 ? "Yesterday" : `${daysAgo} days ago`;
+                            }
+                        }
+
+                        return {
+                            id: tutorial.tutorial_id,
+                            title: tutorial.title,
+                            progress: progressPercent,
+                            lessons: 1, // Individual tutorial
+                            lastAccessed: lastAccessedText
+                        };
+                    })
+                    .sort((a, b) => {
+                        // Sort by last accessed (most recent first)
+                        const aProgress = activeProgress.find(p => p.tutorial_id === a.id);
+                        const bProgress = activeProgress.find(p => p.tutorial_id === b.id);
+                        const aTime = aProgress?.started_at ? new Date(aProgress.started_at).getTime() : 0;
+                        const bTime = bProgress?.started_at ? new Date(bProgress.started_at).getTime() : 0;
+                        return bTime - aTime;
+                    })
+                    .slice(0, 5); // Limit to 5 active courses
+
+                // Calculate achievements
+                const calculatedAchievements = [
+                    {
+                        id: 1,
+                        title: "First Steps",
+                        description: "Completed your first lesson",
+                        icon: Star,
+                        earned: completedProgress.length >= 1,
+                        color: "amber"
+                    },
+                    {
+                        id: 2,
+                        title: "Email Master",
+                        description: "Completed Email Basics course",
+                        icon: Trophy,
+                        earned: false, // Would need category check
+                        color: "blue"
+                    },
+                    {
+                        id: 3,
+                        title: "5-Day Streak",
+                        description: "Learn for 5 days in a row",
+                        icon: Sparkles,
+                        earned: currentStreak >= 5,
+                        color: "purple"
+                    },
+                    {
+                        id: 4,
+                        title: "Social Butterfly",
+                        description: "Complete Social Media course",
+                        icon: Award,
+                        earned: false, // Would need category check
+                        color: "gray"
+                    }
+                ];
+
+                // Calculate weekly activity
+                const weeklyActivityData = [];
+                const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const today = new Date();
+
+                for (let i = 6; i >= 0; i--) {
+                    const date = new Date(today);
+                    date.setUTCDate(date.getUTCDate() - i);
+                    date.setUTCHours(0, 0, 0, 0);
+
+                    const year = date.getUTCFullYear();
+                    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                    const day = String(date.getUTCDate()).padStart(2, '0');
+                    const dateStr = `${year}-${month}-${day}`;
+
+                    const dayCompleted = completedProgress.filter(p => {
+                        if (!p.completed_at) return false;
+                        const pDate = new Date(p.completed_at);
+                        const pYear = pDate.getUTCFullYear();
+                        const pMonth = String(pDate.getUTCMonth() + 1).padStart(2, '0');
+                        const pDay = String(pDate.getUTCDate()).padStart(2, '0');
+                        return `${pYear}-${pMonth}-${pDay}` === dateStr;
+                    });
+
+                    // Calculate hours for this day
+                    const dayTutorialIds = new Set(dayCompleted.map(p => p.tutorial_id));
+                    const dayMinutes = (tutorialsData || [])
+                        .filter(t => dayTutorialIds.has(t.tutorial_id))
+                        .reduce((sum, t) => sum + (t.estimated_duration || 0), 0);
+                    const dayHours = dayMinutes / 60;
+
+                    weeklyActivityData.push({
+                        day: daysOfWeek[date.getUTCDay()],
+                        hours: Math.round(dayHours * 10) / 10,
+                        height: Math.min(Math.round((dayHours / 2) * 100), 100), // Max 2 hours = 100%
+                        isToday: i === 0
+                    });
+                }
+
+                // Update state
+                setProfileStats({
+                    coursesCompleted: completedProgress.length,
+                    hoursSpent,
+                    currentStreak,
+                    totalPoints,
+                    joinDate,
+                    rank: getRank(totalPoints)
+                });
+
+                setAchievements(calculatedAchievements);
+                setActiveCourses(activeCoursesData);
+                setWeeklyActivity(weeklyActivityData);
+
+                setLearningStats([
+                    {
+                        label: "Total Lessons",
+                        value: String(completedProgress.length),
+                        icon: BookOpen,
+                        color: "blue"
+                    },
+                    {
+                        label: "Hours Learned",
+                        value: String(hoursSpent),
+                        icon: Clock,
+                        color: "purple"
+                    },
+                    {
+                        label: "Current Streak",
+                        value: `${currentStreak} days`,
+                        icon: TrendingUp,
+                        color: "emerald"
+                    },
+                    {
+                        label: "Total Points",
+                        value: String(totalPoints),
+                        icon: Target,
+                        color: "orange"
+                    }
+                ]);
+
+            } catch (error) {
+                console.error("Error fetching user profile:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (session) {
+            fetchUserProfile();
         }
     }, [session, navigate]);
 
@@ -32,94 +340,23 @@ export default function UserProfile() {
         return null;
     }
 
-    // Mock data for profile stats
-    const profileStats = {
-        coursesCompleted: 3,
-        hoursSpent: 24,
-        currentStreak: 5,
-        totalPoints: 1250,
-        joinDate: "January 2024",
-        rank: "Silver Learner"
-    };
-
-    const achievements = [
-        {
-            id: 1,
-            title: "First Steps",
-            description: "Completed your first lesson",
-            icon: Star,
-            earned: true,
-            color: "amber"
-        },
-        {
-            id: 2,
-            title: "Email Master",
-            description: "Completed Email Basics course",
-            icon: Trophy,
-            earned: true,
-            color: "blue"
-        },
-        {
-            id: 3,
-            title: "5-Day Streak",
-            description: "Learn for 5 days in a row",
-            icon: Sparkles,
-            earned: true,
-            color: "purple"
-        },
-        {
-            id: 4,
-            title: "Social Butterfly",
-            description: "Complete Social Media course",
-            icon: Award,
-            earned: false,
-            color: "gray"
-        }
-    ];
-
-    const activeCourses = [
-        {
-            id: 1,
-            title: "Video Calls Mastery",
-            progress: 30,
-            lessons: 6,
-            lastAccessed: "2 hours ago"
-        },
-        {
-            id: 2,
-            title: "Social Media Basics",
-            progress: 15,
-            lessons: 10,
-            lastAccessed: "Yesterday"
-        }
-    ];
-
-    const learningStats = [
-        {
-            label: "Total Lessons",
-            value: "42",
-            icon: BookOpen,
-            color: "blue"
-        },
-        {
-            label: "Hours Learned",
-            value: profileStats.hoursSpent,
-            icon: Clock,
-            color: "purple"
-        },
-        {
-            label: "Current Streak",
-            value: `${profileStats.currentStreak} days`,
-            icon: TrendingUp,
-            color: "emerald"
-        },
-        {
-            label: "Total Points",
-            value: profileStats.totalPoints,
-            icon: Target,
-            color: "orange"
-        }
-    ];
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-linear-to-b from-orange-50 via-orange-50 to-white">
+                <Navbar />
+                <main className="max-w-6xl mx-auto px-6 lg:px-8 py-12 pb-20">
+                    <div className="animate-pulse">
+                        <div className="h-32 bg-gray-200 rounded-3xl mb-8"></div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                            {[...Array(4)].map((_, i) => (
+                                <div key={i} className="h-32 bg-gray-200 rounded-3xl"></div>
+                            ))}
+                        </div>
+                    </div>
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-linear-to-b from-orange-50 via-orange-50 to-white">
@@ -217,7 +454,7 @@ export default function UserProfile() {
                             </div>
 
                             <div className="space-y-4">
-                                {activeCourses.map((course) => (
+                                {activeCourses.length > 0 ? activeCourses.map((course) => (
                                     <div key={course.id} className="p-5 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
                                         <div className="flex justify-between items-start mb-3">
                                             <h3 className="text-lg font-bold text-gray-900">{course.title}</h3>
@@ -237,11 +474,16 @@ export default function UserProfile() {
                                             </div>
                                         </div>
 
-                                        <button className="px-4 py-2 bg-gray-900 text-white rounded-full font-semibold text-sm hover:bg-gray-800 transition-colors">
+                                        <button
+                                            onClick={() => navigate(`/tutorials/${course.id}`)}
+                                            className="px-4 py-2 bg-gray-900 text-white rounded-full font-semibold text-sm hover:bg-gray-800 transition-colors"
+                                        >
                                             Continue Learning
                                         </button>
                                     </div>
-                                ))}
+                                )) : (
+                                    <p className="text-gray-500 text-center py-8">No active courses. Start learning to see your progress here!</p>
+                                )}
                             </div>
                         </div>
 
@@ -256,26 +498,24 @@ export default function UserProfile() {
 
                             <div className="space-y-4">
                                 {/* Weekly Activity Bars */}
-                                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
-                                    const height = [60, 80, 45, 90, 75, 30, 85][index];
-                                    const isToday = index === 4;
-                                    return (
-                                        <div key={day} className="flex items-center gap-4">
-                                            <span className={`text-sm font-semibold w-12 ${isToday ? 'text-purple-600' : 'text-gray-600'}`}>
-                                                {day}
-                                            </span>
-                                            <div className="flex-1 bg-gray-100 rounded-full h-8 overflow-hidden">
-                                                <div
-                                                    className={`h-full rounded-full ${isToday ? 'bg-purple-500' : 'bg-gray-300'}`}
-                                                    style={{ width: `${height}%` }}
-                                                ></div>
-                                            </div>
-                                            <span className="text-sm font-semibold text-gray-900 w-12 text-right">
-                                                {Math.round(height / 20)} hr
-                                            </span>
+                                {weeklyActivity.length > 0 ? weeklyActivity.map((activity, index) => (
+                                    <div key={index} className="flex items-center gap-4">
+                                        <span className={`text-sm font-semibold w-12 ${activity.isToday ? 'text-purple-600' : 'text-gray-600'}`}>
+                                            {activity.day}
+                                        </span>
+                                        <div className="flex-1 bg-gray-100 rounded-full h-8 overflow-hidden">
+                                            <div
+                                                className={`h-full rounded-full ${activity.isToday ? 'bg-purple-500' : 'bg-gray-300'}`}
+                                                style={{ width: `${activity.height}%` }}
+                                            ></div>
                                         </div>
-                                    );
-                                })}
+                                        <span className="text-sm font-semibold text-gray-900 w-12 text-right">
+                                            {activity.hours} hr
+                                        </span>
+                                    </div>
+                                )) : (
+                                    <p className="text-gray-500 text-center py-8">No activity data available</p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -335,11 +575,22 @@ export default function UserProfile() {
                                 <Target className="w-7 h-7 text-white" />
                             </div>
                             <h3 className="text-2xl font-bold mb-2">Daily Goal</h3>
-                            <p className="text-emerald-100 mb-4">Keep up your learning streak!</p>
+                            <p className="text-emerald-100 mb-4">
+                                {profileStats.currentStreak > 0
+                                    ? `Keep up your ${profileStats.currentStreak}-day streak! 🔥`
+                                    : "Start your learning streak today!"}
+                            </p>
                             <div className="bg-white/20 rounded-full h-3 overflow-hidden mb-2">
-                                <div className="bg-white h-full rounded-full" style={{ width: '80%' }}></div>
+                                <div
+                                    className="bg-white h-full rounded-full transition-all"
+                                    style={{ width: `${Math.min((profileStats.currentStreak / 7) * 100, 100)}%` }}
+                                ></div>
                             </div>
-                            <p className="text-sm font-semibold text-emerald-50">4 of 5 lessons completed today</p>
+                            <p className="text-sm font-semibold text-emerald-50">
+                                {profileStats.currentStreak > 0
+                                    ? `${profileStats.currentStreak} day${profileStats.currentStreak > 1 ? 's' : ''} streak`
+                                    : "Complete a lesson to start"}
+                            </p>
                         </div>
 
                         {/* Quick Actions */}
