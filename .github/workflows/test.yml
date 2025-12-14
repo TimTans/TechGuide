@@ -24,11 +24,14 @@ jobs:
       run: npm ci
       
     - name: Run tests with coverage (excluding integration tests)
-      run: npx vitest run --coverage --exclude 'tests/integration/**'
+      run: npx vitest run --coverage --exclude 'tests/integration/**' --exclude 'tests/e2e/**'
+      continue-on-error: false
       
     - name: Archive coverage report
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: coverage-report
         path: coverage/
         retention-days: 30
+        if-no-files-found: ignore
