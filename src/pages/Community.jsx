@@ -116,17 +116,6 @@ export default function Community() {
                 {v.availability}
               </div>
 
-              <div className="space-y-2">
-                <button className="w-full flex items-center justify-center gap-2 py-2 rounded-full bg-blue-500 text-white font-semibold hover:bg-blue-600">
-                  <MessageCircle className="w-4 h-4" />
-                  Message
-                </button>
-
-                <button className="w-full flex items-center justify-center gap-2 py-2 rounded-full bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200">
-                  <Video className="w-4 h-4" />
-                  Schedule Call
-                </button>
-              </div>
             </div>
           ))}
         </div>
@@ -139,10 +128,10 @@ export default function Community() {
           <p className="text-emerald-100 mb-6">
             Send us a message and we’ll match you with the right helper.
           </p>
-          <button className="inline-flex items-center gap-2 bg-white text-emerald-600 px-8 py-3 rounded-full font-bold hover:bg-emerald-50">
+          <a href="mailto:help@techguide.org" className="inline-flex items-center gap-2 bg-white text-emerald-600 px-8 py-3 rounded-full font-bold hover:bg-emerald-50">
             <Mail className="w-5 h-5" />
             Get Matched
-          </button>
+          </a>
         </div>
       </main>
     </div>
