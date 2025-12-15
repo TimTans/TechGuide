@@ -260,26 +260,7 @@ export default function Dashboard() {
                             <UserCourses />
                         </div>
 
-                        {/* Recent Activity */}
-                        <div className="bg-white rounded-3xl shadow-sm p-8">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Activity</h2>
-                            <div className="space-y-4">
-                                {recentActivities.map((activity) => {
-                                    const Icon = activity.icon;
-                                    return (
-                                        <div key={activity.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
-                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${activity.color}`}>
-                                                <Icon className="w-6 h-6" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-gray-900 mb-1">{activity.title}</h3>
-                                                <p className="text-sm text-gray-600">{activity.time}</p>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+
                     </div>
 
                     {/* Right Column - Sidebar */}
@@ -341,7 +322,7 @@ export default function Dashboard() {
                             <button
                                 onClick={() => navigate("/community")}
                                 className="text-sm font-semibold text-gray-900 hover:text-gray-700 flex items-center gap-1"
->
+                            >
                                 Join Community
                                 <ArrowRight className="w-4 h-4" />
                             </button>
