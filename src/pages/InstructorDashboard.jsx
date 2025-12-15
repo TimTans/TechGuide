@@ -19,8 +19,9 @@ import {
 
 export default function InstructorDashboard({ user: userProp }) {
     const navigate = useNavigate();
-    const { session } = UserAuth();
+    const { session, getUserData } = UserAuth();
     const user = userProp || session?.user;
+    const [userRole, setUserRole] = useState(null);
 
     const [instructorStats, setInstructorStats] = useState({
         totalStudents: 0,
@@ -42,12 +43,23 @@ export default function InstructorDashboard({ user: userProp }) {
         navigate("/");
     };
 
-    // Redirect to signin if not authenticated
+    // Redirect to signin if not authenticated, or to dashboard if not an instructor
     useEffect(() => {
         if (session === null) {
             navigate("/signin");
+        } else if (session?.user) {
+            getUserData().then((res) => {
+                if (res.success) {
+                    setUserRole(res.data.user_role);
+
+                    // Redirect non-instructors to dashboard
+                    if (res.data.user_role !== "instructor") {
+                        navigate("/dashboard");
+                    }
+                }
+            });
         }
-    }, [session, navigate]);
+    }, [session, navigate, getUserData]);
 
     useEffect(() => {
         const fetchInstructorData = async () => {
