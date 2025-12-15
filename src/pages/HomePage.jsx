@@ -175,10 +175,10 @@ export default function HomePage() {
                                 </div>
                                 <span className="text-sm font-semibold text-gray-700">Join Our Community</span>
                             </div>
-                            <button className="flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
-                                 Get Help Now 
-                                 <ArrowRight className="w-5 h-5" /> 
-                                 </button>
+                            <Link to="/community" className="flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
+                                Get Help Now
+                                <ArrowRight className="w-5 h-5" />
+                            </Link>
                         </div>
                     </div>
                 </div>
