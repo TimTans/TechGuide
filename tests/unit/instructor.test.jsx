@@ -75,6 +75,10 @@ describe('InstructorDashboard', () => {
         // Set default mock return value for UserAuth
         mockUserAuth.mockReturnValue({
             session: { user: { id: '123', email: 'instructor@example.com' } },
+            getUserData: vi.fn().mockResolvedValue({
+                success: true,
+                data: { user_role: 'instructor' }
+            }),
         });
     });
 
