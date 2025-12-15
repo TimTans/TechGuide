@@ -112,6 +112,10 @@ describe('InstructorDashboard', () => {
             // Mock UserAuth to return session without user email
             mockUserAuth.mockReturnValue({
                 session: { user: { id: '123' } }, // No email in user object
+                getUserData: vi.fn().mockResolvedValue({
+                    success: true,
+                    data: { user_role: 'instructor' }
+                }),
             });
 
             renderWithRouter(<InstructorDashboard user={null} />);
