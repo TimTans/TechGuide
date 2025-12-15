@@ -61,7 +61,7 @@ export default function HomePage() {
                             </h1>
                             <div className="mx-4 md:mx-6 w-48 h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 rounded-full overflow-hidden border-8 border-white shadow-2xl">
                                 <img
-                                    src="./src/assets/elderly1.jpg"
+                                    src="./elderly1.jpg"
                                     alt="Senior learning technology"
                                     className="w-full h-full object-cover"
                                 />
@@ -107,8 +107,8 @@ export default function HomePage() {
 
                         <Link to="/about">
                             <button className="mt-8 inline-flex items-center gap-2 text-gray-900 font-semibold hover:gap-3 transition-all">
-                            LEARN MORE
-                            <ArrowRight className="w-5 h-5" />
+                                LEARN MORE
+                                <ArrowRight className="w-5 h-5" />
                             </button>
                         </Link>
                     </div>
